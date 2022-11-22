@@ -139,8 +139,7 @@ function love.update(dt)
   polygons_transformed = polygons_transform(polygons_original)
 end
 
-function love.draw()
-  
+function draw()
   for px=0,500 do
     for py=0,500 do
       for i,polygon_iterated in ipairs(polygons_transformed) do
@@ -152,14 +151,27 @@ function love.draw()
           
           -- color pixel (vertex color, not polygon color!)
           local rgb = polygon_iterated[1].color or {0,1,0} -- default if missing
-          love.graphics.setColor( rgb[1], rgb[2], rgb[3], 1 )
           
-          -- draw pixel
-          love.graphics.rectangle("fill", px,py, 1,1)
+          draw_pixel(rgb, {px,py})
         end
         
       end
     end
   end
-  
+end
+
+--------------------------------------
+-- love2d.org specificities
+--------------------------------------
+
+function draw_pixel(rgb, xy)
+  love.graphics.setColor( rgb[1], rgb[2], rgb[3], 1 )
+
+  -- draw pixel
+  local px, py = xy[1], xy[2]
+  love.graphics.rectangle("fill", px,py, 1,1)
+end
+
+function love.draw()
+  draw()
 end

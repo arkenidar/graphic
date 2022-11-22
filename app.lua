@@ -25,6 +25,8 @@ end
 
 dofile('polygon.lua')
 
+local draw_pixel = surface_draw_rect
+
 function draw()
   for px=0,500 do
     for py=0,500 do
@@ -42,7 +44,7 @@ function draw()
           -- color pixel
           local rgb = {0,255,0}
           -- draw pixel
-          surface_draw_rect(rgb, {px,py})
+          draw_pixel(rgb, {px,py})
         end
         
       --end
