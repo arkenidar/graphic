@@ -5,25 +5,59 @@ end
 
 dofile('polygon.lua')
 
-polygon={
-  
-  {x=0,y=0,z=0},
-  {x=50,y=0,z=0},
-  {x=50,y=50,z=0},
-  {x=0,y=50,z=0},
-  
+s=50 -- size
+
+polygon_x={ -- x=0
+  {z=0,y=0,x=0},
+  {z=0,y=s,x=0},
+  {z=s,y=s,x=0},
+  {z=s,y=0,x=0},
   color={0,1,1},
 }
-polygon_back_face={
-  polygon[4],
-  polygon[3],
-  polygon[2],
-  polygon[1],
-  color={1,0,0},
+polygon_x2={ -- x=s
+  {z=s,y=0,x=s},
+  {z=s,y=s,x=s},
+  {z=0,y=s,x=s},
+  {z=0,y=0,x=s},
+  color={0,0,1}
 }
 
+polygon_y={ -- y=0
+  {x=0,z=0,y=0},
+  {x=0,z=s,y=0},
+  {x=s,z=s,y=0},
+  {x=s,z=0,y=0},
+  color={1,1,1},
+}
+polygon_y2={ -- y=s
+  {x=s,z=0,y=s},
+  {x=s,z=s,y=s},
+  {x=0,z=s,y=s},
+  {x=0,z=0,y=s},
+  color={0,0,1}
+}
 
-polygons_original={polygon, polygon_back_face}
+polygon_z={ -- z=0
+  {x=s,y=0,z=0},
+  {x=s,y=s,z=0},
+  {x=0,y=s,z=0},
+  {x=0,y=0,z=0},
+  color={1,0,0}
+}
+
+polygon_z2={ -- z=s
+  {x=0,y=0,z=s},
+  {x=0,y=s,z=s},
+  {x=s,y=s,z=s},
+  {x=s,y=0,z=s},
+  color={1,1,0},
+}
+
+polygons_original={
+  polygon_x, polygon_x2,
+  polygon_y, polygon_y2,
+  polygon_z, polygon_z2,
+}
 
 function polygon_transform(polygon)
   
