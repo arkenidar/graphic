@@ -145,9 +145,6 @@ function draw()
           -- color pixel (vertex color, not polygon color!)
           local rgb = polygon_iterated[1].color or {0,1,0} -- default if missing
           
-          -- DEBUG change (yellow color)
-          rgb={1,1,0}
-          
           draw_pixel(rgb, {px,py})
         end
         
