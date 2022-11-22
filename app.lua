@@ -27,10 +27,11 @@ dofile('polygon.lua')
 
 --draw_pixel = surface_draw_rect
 function draw_pixel(rgb,xy)
-  rgb[1] = rgb[1]*255
-  rgb[2] = rgb[2]*255
-  rgb[3] = rgb[3]*255
-  surface_draw_rect(rgb,xy)
+  local rgb255 = {
+  rgb[1]*255 ,
+  rgb[2]*255 ,
+  rgb[3]*255 }
+  surface_draw_rect(rgb255,xy)
 end
 
 dofile('common.lua')
