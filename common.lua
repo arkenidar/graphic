@@ -1,13 +1,3 @@
-
--- main.lua is for Love2D (http://love2d.org)
-
-function love.load()
-  -- from: http://notebook.kulchenko.com/zerobrane/love2d-debugging
-  if arg[#arg] == "-debug" then require("mobdebug").start() end
-end
-
-dofile('polygon.lua')
-
 s=50 -- size
 
 polygon_x={ -- x=0
@@ -155,30 +145,13 @@ function draw()
           -- color pixel (vertex color, not polygon color!)
           local rgb = polygon_iterated[1].color or {0,1,0} -- default if missing
           
+          -- DEBUG change (yellow color)
+          rgb={1,1,0}
+          
           draw_pixel(rgb, {px,py})
         end
         
       end
     end
   end
-end
-
---------------------------------------
--- love2d.org specificities
---------------------------------------
-
-function love.update(dt)
-  update(dt)
-end
-
-function draw_pixel(rgb, xy)
-  love.graphics.setColor( rgb[1], rgb[2], rgb[3], 1 )
-
-  -- draw pixel
-  local px, py = xy[1], xy[2]
-  love.graphics.rectangle("fill", px,py, 1,1)
-end
-
-function love.draw()
-  draw()
 end

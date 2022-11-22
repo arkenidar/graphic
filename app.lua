@@ -25,8 +25,17 @@ end
 
 dofile('polygon.lua')
 
-local draw_pixel = surface_draw_rect
+--draw_pixel = surface_draw_rect
+function draw_pixel(rgb,xy)
+  rgb[1] = rgb[1]*255
+  rgb[2] = rgb[2]*255
+  rgb[3] = rgb[3]*255
+  surface_draw_rect(rgb,xy)
+end
 
+dofile('common.lua')
+
+--[[
 function draw()
   for px=0,500 do
     for py=0,500 do
@@ -52,6 +61,9 @@ function draw()
   end
 end
 
+--]]
+
+local time_ticks = SDL.SDL_GetTicks()
 local event = ffi.new("SDL_Event")
 local looping = true
 while looping do
@@ -63,6 +75,13 @@ while looping do
     end
   end
 
+  local dt -- elapsed time in fractions of seconds
+  delta_ticks = SDL.SDL_GetTicks() - time_ticks
+  time_ticks = SDL.SDL_GetTicks()
+  dt = delta_ticks / 1000 -- milliseconds to seconds
+
+  update(dt)
+  
   --SDL.SDL_FillRect(window_surface,nil,0)
   surface_draw_rect({0,0,0})
   
