@@ -17,3 +17,7 @@
 - https://love2d.org
 - https://libsdl.org/
 - https://github.com/arkenidar/Lua_Love2D_PointInPolygon-Algorithm
+
+## screens
+
+!["luajit app.lua" and "love ." similarity](docs/Screenshot_20221122_195044.png?raw=true "running it")
