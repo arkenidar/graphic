@@ -4,6 +4,10 @@
 function love.load()
   -- from: http://notebook.kulchenko.com/zerobrane/love2d-debugging
   if arg[#arg] == "-debug" then require("mobdebug").start() end
+  
+  love.window.setTitle("")
+  love.window.setMode(100,100)
+  
 end
 
 dofile('polygon.lua')

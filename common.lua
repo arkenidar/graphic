@@ -114,7 +114,7 @@ function polygon_transform(polygon)
   
   local polygon_origin={}
   for i,point in ipairs(polygon) do
-    table.insert( polygon_origin, point_translate(point, -50,-50,0) )
+    table.insert( polygon_origin, point_translate(point, -25,-25,-25) )
   end
   
   local polygon_rotated1={}
@@ -129,7 +129,7 @@ function polygon_transform(polygon)
   
   local polygon_rotated_translated={}
   for i,point in ipairs(polygon_rotated2) do
-    table.insert( polygon_rotated_translated, point_translate(point, 150,150,0) )
+    table.insert( polygon_rotated_translated, point_translate(point, 50,50,0) )
   end
   
   local polygon_transformed = polygon_rotated_translated
@@ -140,7 +140,7 @@ end
 degrees = 0.0
 
 function update(dt)
-  degrees = (degrees + dt*1000/60 ) % 360
+  degrees = (degrees + dt*5000/60 ) % 360
   
   function polygons_transform(polygons)
     local polygons_transformed = {}
@@ -154,8 +154,8 @@ function update(dt)
 end
 
 function draw()
-  for px=0,200 do
-    for py=0,200 do
+  for px=0,100 do
+    for py=0,100 do
       for i,polygon_iterated in ipairs(polygons_transformed) do
         
         local check = false

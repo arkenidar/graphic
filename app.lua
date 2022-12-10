@@ -7,7 +7,7 @@ ffi.cdef( io.open('ffi_defs.h','r'):read('*a') )
 local SDL = ffi.load('SDL2')
 
 SDL.SDL_Init(0)
-local window = SDL.SDL_CreateWindow("title", 50,50, 400,300, 0)
+local window = SDL.SDL_CreateWindow("", 50,50, 100,100, 0)
 local window_surface = SDL.SDL_GetWindowSurface(window)
 
 function rect_from_xywh(xywh)
