@@ -1,3 +1,8 @@
+
+-- app.lua is for SDL2 via LuaJIT's FFI
+
+dofile('common-preceding.lua')
+
 -- from: http://notebook.kulchenko.com/zerobrane/love2d-debugging
 ---if arg[#arg] == "-debug" then require("mobdebug").start() end
 ---require("mobdebug").start()
@@ -7,7 +12,7 @@ ffi.cdef( io.open('ffi_defs.h','r'):read('*a') )
 local SDL = ffi.load('SDL2')
 
 SDL.SDL_Init(0)
-local window = SDL.SDL_CreateWindow("", 50,50, 100,100, 0)
+local window = SDL.SDL_CreateWindow("", 50,50, render_width,render_height, 0)
 local window_surface = SDL.SDL_GetWindowSurface(window)
 
 function rect_from_xywh(xywh)

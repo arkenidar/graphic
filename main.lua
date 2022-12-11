@@ -1,12 +1,14 @@
 
 -- main.lua is for Love2D (http://love2d.org)
 
+dofile('common-preceding.lua')
+
 function love.load()
   -- from: http://notebook.kulchenko.com/zerobrane/love2d-debugging
   if arg[#arg] == "-debug" then require("mobdebug").start() end
   
   love.window.setTitle("")
-  love.window.setMode(100,100)
+  love.window.setMode(render_width,render_height)
   
 end
 

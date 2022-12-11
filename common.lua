@@ -154,8 +154,8 @@ function update(dt)
 end
 
 function draw()
-  for px=0,100 do
-    for py=0,100 do
+  for py=0,render_height do
+    for px=0,render_width do
       for i,polygon_iterated in ipairs(polygons_transformed) do
         
         local check = false
