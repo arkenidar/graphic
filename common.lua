@@ -1,3 +1,5 @@
+require('algebra')
+
 s=50 -- size
 
 polygon_x={ -- x=0
@@ -74,19 +76,13 @@ for _, polygon_iterated in ipairs(polygons_original) do
 end
 
 function polygon_transform(polygon)
-  
   local radiants = (degrees/360)*(math.pi*2)
-  
-  for i,point in ipairs(polygon) do
-    point.color = polygon.color
-  end
   
   function point_translate(point, x,y,z)
     return {
       x = point.x + x ,
       y = point.y + y ,
-      z = point.z + z ,
-      color = point.color }
+      z = point.z + z }
   end
   
   --[[
@@ -97,7 +93,7 @@ function polygon_transform(polygon)
   end --]]
   
   function point_rotate_axes(axes, point_in, radiants)
-    local point_out = {x=point_in.x, y=point_in.y, z=point_in.z, color=point_in.color}
+    local point_out = {x=point_in.x, y=point_in.y, z=point_in.z}
     local one, two = string.sub(axes, 1,1), string.sub(axes, 2,2)
     point_out[one] = math.cos(radiants)*point_in[one] - math.sin(radiants)*point_in[two]
     point_out[two] = math.cos(radiants)*point_in[two] + math.sin(radiants)*point_in[one]
@@ -133,6 +129,7 @@ function polygon_transform(polygon)
   end
   
   local polygon_transformed = polygon_rotated_translated
+  polygon_transformed.color = polygon.color -- same color
   
   return polygon_transformed
 end
@@ -163,8 +160,41 @@ function draw()
         
         if check then
           
-          -- color pixel (vertex color, not polygon color!)
-          local rgb = polygon_iterated[1].color or {0,1,0} -- default if missing
+          --[[
+          shaded_color=color*(dot(facing_direction,light_direction))
+          i.e. face_color scaled to cos_angle obtained as
+          vector dot product of face_normal and to_light vectors
+          --]]
+          
+          if not polygon_iterated.color_diffuse then
+            local color = polygon_iterated.color
+            
+            if not polygon_iterated.normal then
+              polygon_iterated.normal = polygon_normal(polygon_iterated)
+            end
+            
+            local face_normal = polygon_iterated.normal
+            
+            local to_light = vunit({x=-1,y=-1,z=-1})
+            
+            local cos_angle = vdot(face_normal, to_light)
+            cos_angle = unit_clamp(cos_angle)
+            
+            color = scale3(cos_angle, color)
+            
+            local ambient_light_intensity = 0.2
+            local ambient_light_color = {
+              ambient_light_intensity,
+              ambient_light_intensity,
+              ambient_light_intensity}
+            
+            color = sum3(color,ambient_light_color)
+            color = clamp3(color)
+            
+            polygon_iterated.color_diffuse = color
+          end
+          
+          local rgb = polygon_iterated.color_diffuse
           
           draw_pixel(rgb, {px,py})
         end

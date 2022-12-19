@@ -8,7 +8,7 @@ function love.load()
   if arg[#arg] == "-debug" then require("mobdebug").start() end
   
   love.window.setTitle("")
-  love.window.setMode(render_width,render_height)
+  love.window.setMode(800,600)
   
 end
 

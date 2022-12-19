@@ -1,10 +1,22 @@
 
+function clamp_generic(n, low, high) return math.min(math.max(n, low), high) end
+function unit_clamp(n) return clamp_generic(n, 0, 1) end
+
 -- vector algebra
 
-string_indices = {'x','y','z'}
+string_indices_point = {'x','y','z'}
 zero3 = {x=0,y=0,z=0}
 
-function voperation(v1,v2,op) -- abstract vector operation (then specialized)
+function voperation(v1,v2,op,string_indices_option) -- abstract vector operation (then specialized)
+  
+  local string_indices
+  
+  if not string_indices_option then
+    string_indices = string_indices_point
+  else
+    string_indices = string_indices_option
+  end
+  
   local result={}
   for index=1,#string_indices do
     local string_index=string_indices[index]
@@ -56,6 +68,29 @@ end
 function vstringify(v) -- xyz vector to string
   return "("..v.x..","..v.y..","..v.z..")"
 end
+
+-- function color_scale
+
+function scale3(scalar,vec3)
+  return { vec3[1]*scalar, vec3[2]*scalar, vec3[3]*scalar }
+end
+
+function sum3(vec3_a,vec3_b)
+  return { vec3_a[1]+vec3_b[1], vec3_a[2]+vec3_b[2], vec3_a[3]+vec3_b[3] }
+end
+
+function clamp3(vec3)
+  return { unit_clamp(vec3[1]), unit_clamp(vec3[2]), unit_clamp(vec3[3]) }
+end
+
+--[[
+string_indices_color = {'r','g','b'}
+color_zero={r=0,g=0,b=0}
+
+function color_scale(scalar,color) -- multiply (scale)
+  return voperation(color_zero,color,function(_,b_color_component) return scalar*b_color_component end, string_indices_color)
+end
+--]]
 
 -- *********************************
 
