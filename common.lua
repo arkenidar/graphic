@@ -54,26 +54,31 @@ polygons_original={
   polygon_z, polygon_z2,
 }
 
-triangles_original = {}
-for _, polygon_iterated in ipairs(polygons_original) do
-  if #polygon_iterated == 4 then
-    local triangle1, triangle2
-    triangle1={
-      color=polygon_iterated.color,
-      polygon_iterated[1],
-      polygon_iterated[2],
-      polygon_iterated[3],
-    }
-    triangle2={
-      color=polygon_iterated.color,
-      polygon_iterated[3],
-      polygon_iterated[4],
-      polygon_iterated[1],
-    }
-    table.insert(triangles_original, triangle1)
-    table.insert(triangles_original, triangle2)
+function convert_polygons_to_triangles(polygons_original)
+  local triangles_original = {}
+  for _, polygon_iterated in ipairs(polygons_original) do
+    if #polygon_iterated == 4 then
+      local triangle1, triangle2
+      triangle1={
+        color=polygon_iterated.color,
+        polygon_iterated[1],
+        polygon_iterated[2],
+        polygon_iterated[3],
+      }
+      triangle2={
+        color=polygon_iterated.color,
+        polygon_iterated[3],
+        polygon_iterated[4],
+        polygon_iterated[1],
+      }
+      table.insert(triangles_original, triangle1)
+      table.insert(triangles_original, triangle2)
+    end
   end
+  return triangles_original
 end
+
+triangles_original = convert_polygons_to_triangles(polygons_original)
 
 function polygon_transform(polygon)
   local radiants = (degrees/360)*(math.pi*2)
