@@ -154,9 +154,22 @@ function update(dt)
   
   polygons_transformed = polygons_transform(triangles_original)
   
-  polygons_transformed_addon = {
-    polygon_z2,
+  local s = 50
+  local depth = 10
+  local polygon_z2={ -- z=s
+    {x=0,y=0,z=depth},
+    {x=0,y=s,z=depth},
+    {x=s,y=s,z=depth},
+    {x=s,y=0,z=depth},
+    color={1,1,0},
   }
+  
+  local polygons_transformed_addon
+  polygons_transformed_addon = { polygon_z2, }
+  polygons_transformed_addon = convert_polygons_to_triangles(
+    polygons_transformed_addon )
+  
+  -- polygons_transformed_addon = convert_polygons_to_triangles( { polygon_z2 } )
 
   local polygons_accumulator = polygons_transformed
   for i,polygon in ipairs(polygons_transformed_addon) do
@@ -167,6 +180,17 @@ function update(dt)
 end
 
 function draw()
+  
+  -- z-buffer
+  local depth_buffer={}
+  for py=0,render_height do
+    local line={}
+    for px=0,render_width do
+      table.insert(line, px, -1000) -- reset value
+    end
+    table.insert(depth_buffer, py, line)
+  end
+  
   for py=0,render_height do
     for px=0,render_width do
       for i,polygon_iterated in ipairs(polygons_to_render) do
@@ -223,8 +247,10 @@ function draw()
           
           local rgb = polygon_iterated.color_diffuse
           
-          if z>0 then
+          local current_depth = depth_buffer[py][px]
+          if z > current_depth then
             draw_pixel(rgb, {px,py})
+            depth_buffer[py][px] = z -- successive depth
           end
         end
         
