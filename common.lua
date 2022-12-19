@@ -160,6 +160,21 @@ function draw()
         
         if check then
           
+          if not polygon_iterated.normal then
+            polygon_iterated.normal = polygon_normal(polygon_iterated)
+          end
+
+          x=px
+          y=py
+          x1=polygon_iterated[1].x
+          y1=polygon_iterated[1].y
+          z1=polygon_iterated[1].z
+          a=polygon_iterated.normal.x
+          b=polygon_iterated.normal.y
+          c=polygon_iterated.normal.z
+          
+          z = -(a*x +b*y -(a*x1 +b*y1 +c*z1) )/c
+          
           --[[
           shaded_color=color*(dot(facing_direction,light_direction))
           i.e. face_color scaled to cos_angle obtained as
@@ -168,10 +183,6 @@ function draw()
           
           if not polygon_iterated.color_diffuse then
             local color = polygon_iterated.color
-            
-            if not polygon_iterated.normal then
-              polygon_iterated.normal = polygon_normal(polygon_iterated)
-            end
             
             local face_normal = polygon_iterated.normal
             
@@ -196,7 +207,9 @@ function draw()
           
           local rgb = polygon_iterated.color_diffuse
           
-          draw_pixel(rgb, {px,py})
+          if z>0 then
+            draw_pixel(rgb, {px,py})
+          end
         end
         
       end
