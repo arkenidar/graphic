@@ -1,7 +1,7 @@
 
 -- main.lua is for Love2D (http://love2d.org)
 
-dofile('common-preceding.lua')
+require('common-preceding')
 
 function love.load()
   -- from: http://notebook.kulchenko.com/zerobrane/love2d-debugging
@@ -12,9 +12,9 @@ function love.load()
   
 end
 
-dofile('polygon.lua')
+require('polygon')
 
-dofile('common.lua')
+require('common')
 
 --------------------------------------
 -- love2d.org specificities

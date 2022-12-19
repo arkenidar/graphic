@@ -1,7 +1,7 @@
 
 -- app.lua is for SDL2 via LuaJIT's FFI
 
-dofile('common-preceding.lua')
+require('common-preceding')
 
 -- from: http://notebook.kulchenko.com/zerobrane/love2d-debugging
 ---if arg[#arg] == "-debug" then require("mobdebug").start() end
@@ -28,7 +28,7 @@ function surface_draw_rect(rgb, xywh)
   SDL.SDL_FillRect(window_surface, rect_from_xywh(xywh), SDL.SDL_MapRGB(window_surface.format,rgb[1],rgb[2],rgb[3]))
 end
 
-dofile('polygon.lua')
+require('polygon')
 
 --draw_pixel = surface_draw_rect
 function draw_pixel(rgb,xy)
@@ -39,7 +39,7 @@ function draw_pixel(rgb,xy)
   surface_draw_rect(rgb255,xy)
 end
 
-dofile('common.lua')
+require('common')
 
 --[[
 function draw()
