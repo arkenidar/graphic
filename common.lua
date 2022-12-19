@@ -148,12 +148,23 @@ function update(dt)
   end
   
   polygons_transformed = polygons_transform(triangles_original)
+  
+  polygons_transformed_addon = {
+    polygon_z2,
+  }
+
+  local polygons_accumulator = polygons_transformed
+  for i,polygon in ipairs(polygons_transformed_addon) do
+    table.insert(polygons_accumulator,polygon)
+  end
+  polygons_to_render = polygons_accumulator
+  
 end
 
 function draw()
   for py=0,render_height do
     for px=0,render_width do
-      for i,polygon_iterated in ipairs(polygons_transformed) do
+      for i,polygon_iterated in ipairs(polygons_to_render) do
         
         local check = false
         check = in_convex_polygon(px, py, polygon_iterated)
