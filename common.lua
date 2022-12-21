@@ -186,7 +186,7 @@ function draw()
   for py=0,render_height do
     local line={}
     for px=0,render_width do
-      table.insert(line, px, -1000) -- reset value
+      table.insert(line, px, -math.huge) -- reset value
     end
     table.insert(depth_buffer, py, line)
   end
@@ -203,7 +203,7 @@ function draw()
           if not polygon_iterated.normal then
             polygon_iterated.normal = polygon_normal(polygon_iterated)
           end
-
+          local x,y,z,x1,y1,z1,a,b,c
           x=px
           y=py
           x1=polygon_iterated[1].x
