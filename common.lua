@@ -179,7 +179,64 @@ function update(dt)
   
 end
 
+function shading(polygon_iterated)
+  
+  if not polygon_iterated.normal then
+    polygon_iterated.normal = polygon_normal(polygon_iterated)
+  end
+  
+  function polygon_iterated.depth(px, py)
+    local x,y,z,x1,y1,z1,a,b,c
+    x=px
+    y=py
+    x1=polygon_iterated[1].x
+    y1=polygon_iterated[1].y
+    z1=polygon_iterated[1].z
+    a=polygon_iterated.normal.x
+    b=polygon_iterated.normal.y
+    c=polygon_iterated.normal.z
+    
+    z = -(a*x +b*y -(a*x1 +b*y1 +c*z1) )/c
+  
+    return z
+  end
+
+  --[[
+  shaded_color=color*(dot(facing_direction,light_direction))
+  i.e. face_color scaled to cos_angle obtained as
+  vector dot product of face_normal and to_light vectors
+  --]]
+  
+  if not polygon_iterated.color_diffuse then
+    local color = polygon_iterated.color
+    
+    local face_normal = polygon_iterated.normal
+    
+    local to_light = vunit({x=-1,y=-1,z=-1})
+    
+    local cos_angle = vdot(face_normal, to_light)
+    cos_angle = unit_clamp(cos_angle)
+    
+    color = scale3(cos_angle, color)
+    
+    local ambient_light_intensity = 0.2
+    local ambient_light_color = {
+      ambient_light_intensity,
+      ambient_light_intensity,
+      ambient_light_intensity}
+    
+    color = sum3(color,ambient_light_color)
+    color = clamp3(color)
+    
+    polygon_iterated.color_diffuse = color
+  end
+end
+
 function draw()
+  
+  for i,polygon_iterated in ipairs(polygons_to_render) do
+    shading(polygon_iterated)
+  end
   
   -- z-buffer
   local depth_buffer={}
@@ -200,56 +257,15 @@ function draw()
         
         if check then
           
-          if not polygon_iterated.normal then
-            polygon_iterated.normal = polygon_normal(polygon_iterated)
-          end
-          local x,y,z,x1,y1,z1,a,b,c
-          x=px
-          y=py
-          x1=polygon_iterated[1].x
-          y1=polygon_iterated[1].y
-          z1=polygon_iterated[1].z
-          a=polygon_iterated.normal.x
-          b=polygon_iterated.normal.y
-          c=polygon_iterated.normal.z
-          
-          z = -(a*x +b*y -(a*x1 +b*y1 +c*z1) )/c
-          
-          --[[
-          shaded_color=color*(dot(facing_direction,light_direction))
-          i.e. face_color scaled to cos_angle obtained as
-          vector dot product of face_normal and to_light vectors
-          --]]
-          
-          if not polygon_iterated.color_diffuse then
-            local color = polygon_iterated.color
-            
-            local face_normal = polygon_iterated.normal
-            
-            local to_light = vunit({x=-1,y=-1,z=-1})
-            
-            local cos_angle = vdot(face_normal, to_light)
-            cos_angle = unit_clamp(cos_angle)
-            
-            color = scale3(cos_angle, color)
-            
-            local ambient_light_intensity = 0.2
-            local ambient_light_color = {
-              ambient_light_intensity,
-              ambient_light_intensity,
-              ambient_light_intensity}
-            
-            color = sum3(color,ambient_light_color)
-            color = clamp3(color)
-            
-            polygon_iterated.color_diffuse = color
-          end
-          
           local rgb = polygon_iterated.color_diffuse
+          
+          local z = polygon_iterated.depth(px,py)
           
           local current_depth = depth_buffer[py][px]
           if z > current_depth then
+            
             draw_pixel(rgb, {px,py})
+            
             depth_buffer[py][px] = z -- successive depth
           end
         end
