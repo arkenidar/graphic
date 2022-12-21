@@ -181,20 +181,30 @@ end
 
 function shading(polygon_iterated)
   
-  if not polygon_iterated.normal then
+  --[[
+  if not polygon_iterated.normal then  -- caching
     polygon_iterated.normal = polygon_normal(polygon_iterated)
   end
+  --]]
+  
+  local normal_vector = polygon_normal(polygon_iterated) -- not cached
   
   function polygon_iterated.depth(px, py)
+    
+    if not polygon_iterated.normal then -- caching, it's cached
+      polygon_iterated.normal = polygon_normal(polygon_iterated)
+    end
+    
     local x,y,z,x1,y1,z1,a,b,c
+    local normal_vector = polygon_iterated.normal -- cached
     x=px
     y=py
     x1=polygon_iterated[1].x
     y1=polygon_iterated[1].y
     z1=polygon_iterated[1].z
-    a=polygon_iterated.normal.x
-    b=polygon_iterated.normal.y
-    c=polygon_iterated.normal.z
+    a=normal_vector.x
+    b=normal_vector.y
+    c=normal_vector.z
     
     z = -(a*x +b*y -(a*x1 +b*y1 +c*z1) )/c
   
@@ -210,7 +220,7 @@ function shading(polygon_iterated)
   if not polygon_iterated.color_diffuse then
     local color = polygon_iterated.color
     
-    local face_normal = polygon_iterated.normal
+    local face_normal = normal_vector -- not cached
     
     local to_light = vunit({x=-1,y=-1,z=-1})
     
@@ -232,10 +242,24 @@ function shading(polygon_iterated)
   end
 end
 
+function perspective(polygon_iterated)
+  local vanishing_point = { x=render_width/2, y=render_height/2 }
+  
+  for i,vertex in ipairs(polygon_iterated) do
+    local z_scaling = (-vertex.z+100)/100
+    vertex.x = (vertex.x-vanishing_point.x)/z_scaling+vanishing_point.x
+    vertex.y = (vertex.y-vanishing_point.y)/z_scaling+vanishing_point.y
+  end
+end
+
 function draw()
   
   for i,polygon_iterated in ipairs(polygons_to_render) do
     shading(polygon_iterated)
+  end
+  
+  for i,polygon_iterated in ipairs(polygons_to_render) do
+    perspective(polygon_iterated)
   end
   
   -- z-buffer
