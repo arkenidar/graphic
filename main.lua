@@ -1,7 +1,13 @@
 
--- main.lua is for Love2D (http://love2d.org)
+-- main.lua is for Love2D (https://love2d.org)
 
 require('common-preceding')
+
+if love==nil then
+  -- not using Love2D
+  print("USAGE ERROR: run it with Love2D (get it at love2d.org)")
+  os.exit(1)
+end
 
 function love.load()
   -- from: http://notebook.kulchenko.com/zerobrane/love2d-debugging
