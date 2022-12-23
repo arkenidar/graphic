@@ -1,7 +1,14 @@
 
--- app.lua is for SDL2 via LuaJIT's FFI
+-- app.lua is for SDL2 ... (https://libsdl.org/)
+-- ... via LuaJIT's FFI (https://luajit.org/)
 
 require('common-preceding')
+
+if type(jit) ~= 'table' then
+  -- not using LuaJIT
+  print("USAGE ERROR: run it with LuaJIT (get it at luajit.org)")
+  os.exit(1)
+end
 
 -- from: http://notebook.kulchenko.com/zerobrane/love2d-debugging
 ---if arg[#arg] == "-debug" then require("mobdebug").start() end
