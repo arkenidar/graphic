@@ -5,7 +5,14 @@ function load_stl_file(file_path)
   
   local x_min, x_max, y_min, y_max, z_min, z_max
   
-  for line in io.lines(file_path) do
+  local lines_iterator
+  if love then
+    lines_iterator = love.filesystem.lines(file_path)
+  else
+    lines_iterator = io.lines(file_path)
+  end
+  
+  for line in lines_iterator do
 
     local x,y,z = line:match "vertex (%S+) (%S+) (%S+)"
 
