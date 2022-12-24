@@ -1,1 +1,1 @@
-render_width, render_height = 100, 100
+render_width, render_height = 300, 300
