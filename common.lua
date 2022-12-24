@@ -272,12 +272,48 @@ function draw()
     table.insert(depth_buffer, py, line)
   end
   
-  for py=0,render_height do
-    for px=0,render_width do
-      for i,polygon_iterated in ipairs(polygons_to_render) do
+  function inside_polygon(polygon, point)
+    local last = polygon[#polygon]
+    for i = 1, #polygon do
+      local current = polygon[i]
+      if side(point, last, current) > 0 then
+        return false
+      end
+      last = current
+    end
+    return true
+  end
+  
+  for i,polygon_iterated in ipairs(polygons_to_render) do
+    
+    local x_min = math.huge
+    local x_max = -math.huge
+    local y_min = math.huge
+    local y_max = -math.huge
+    for i,point in ipairs(polygon_iterated) do
+      if point.x < x_min then x_min=point.x end
+      if point.x > x_max then x_max=point.x end
+      if point.y < y_min then y_min=point.y end
+      if point.y > y_max then y_max=point.y end
+    end
+    
+    x_min=math.max(x_min,0)
+    x_max=math.min(x_max,render_width)
+    
+    y_min=math.max(y_min,0)
+    y_max=math.min(y_max,render_height)
+    
+    x_min=math.floor(x_min)
+    x_max=math.floor(x_max)
+    y_min=math.floor(y_min)
+    y_max=math.floor(y_max)
+    
+    for py = y_min,y_max do
+      for px = x_min,x_max do
         
         local check = false
-        check = in_convex_polygon(px, py, polygon_iterated)
+        ---check = in_convex_polygon(px, py, polygon_iterated)
+        check = inside_polygon(polygon_iterated, {x=px, y=py})
         
         if check then
           
