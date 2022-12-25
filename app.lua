@@ -98,7 +98,7 @@ while looping do
   --SDL.SDL_FillRect(window_surface,nil,0)
   surface_draw_rect({0,0,0})
   
-  surface_draw_rect({0,255,0}, {50,50})
+  ---surface_draw_rect({0,255,0}, {50,50}) -- test pixel draw
   
   draw()
   
