@@ -35,8 +35,6 @@ function surface_draw_rect(rgb, xywh)
   SDL.SDL_FillRect(window_surface, rect_from_xywh(xywh), SDL.SDL_MapRGB(window_surface.format,rgb[1],rgb[2],rgb[3]))
 end
 
-require('polygon')
-
 --draw_pixel = surface_draw_rect
 function draw_pixel(rgb,xy)
   local rgb255 = {

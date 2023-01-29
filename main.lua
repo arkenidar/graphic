@@ -18,8 +18,6 @@ function love.load()
   
 end
 
-require('polygon')
-
 require('common')
 
 --------------------------------------

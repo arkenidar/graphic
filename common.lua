@@ -307,9 +307,21 @@ function draw()
     local last = polygon[#polygon]
     for i = 1, #polygon do
       local current = polygon[i]
+      
+      --[[
       if side(point, last, current) > 0 then
         return false
       end
+      --]]
+      
+      function halfplane(px, p1, p2)
+        return ( (p2.x - p1.x) * (px.y - p1.y) - (p2.y - p1.y) * (px.x - p1.x) ) >= 0 
+      end
+
+      if halfplane(point, last, current) then
+        return false
+      end
+      
       last = current
     end
     return true
