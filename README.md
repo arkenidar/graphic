@@ -20,4 +20,6 @@
 
 ## screens
 
+![3D Mesh importing from STL format](docs/3d-teapot-from-2d.gif?raw=true "demo")
+
 !["luajit app.lua" and "love ." similarity](docs/Screenshot_20221122_195044.png?raw=true "running it")
