@@ -101,6 +101,16 @@ function polygon_normal(polygon)
   return vunit(normal)
 end
 
+function color_interpolate(point, polygon)
+  local a=polygon[1]
+  local b=polygon[2]
+  local c=polygon[3]
+  local ra = ((b.y-c.y)*(point.x-c.x)+(c.x-b.x)*(point.y-c.y))/((b.y-c.y)*(a.x-c.x)+(c.x-b.x)*(a.y-c.y))
+  local rb = ((c.y-a.y)*(point.x-c.x)+(a.x-c.x)*(point.y-c.y))/((b.y-c.y)*(a.x-c.x)+(c.x-b.x)*(a.y-c.y))
+  local rc = 1 - ra - rb
+  return sum3( scale3(ra,a.color), sum3( scale3(rb,b.color), scale3(rc,c.color) ) )
+end
+
 -- *********************************
 
 function algebra_module_test()
