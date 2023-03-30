@@ -328,14 +328,16 @@ function draw()
   end
   
   -- testing: function color_interpolate(point, polygon)
-  polygons_to_render = {
-    {
-    {x=300, y=10, z=10, color={1,1,0}},
-    {x=10,  y=10, z=10, color={1,0,0}},
-    {x=10,  y=300,z=10, color={0,1,0}},
-    }
-  }
+  --polygons_to_render = {}
   
+  table.insert(polygons_to_render,
+    {
+      {x=300, y=10, z=10, color={1,1,0}},
+      {x=10,  y=10, z=10, color={1,0,0}},
+      {x=10,  y=300,z=10, color={0,1,0}},
+    }
+  )
+
   for i,polygon_iterated in ipairs(polygons_to_render) do
     
     local x_min = math.huge
@@ -400,7 +402,7 @@ function draw()
           local current_depth = depth_buffer[py][px]
           if z < current_depth then
             
-            rgb = color_interpolate({x=px, y=py}, polygon_iterated)
+            if not rgb then rgb = color_interpolate({x=px, y=py}, polygon_iterated) end
             
             draw_pixel(rgb, {px,py})
             
