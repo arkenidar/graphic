@@ -21,7 +21,7 @@ function load_obj_file(file_path)
       local vertex_normal={ x=tonumber(x), y=tonumber(y), z=tonumber(z) }
       table.insert(index_vertex_normal, vertex_normal)
     elseif type=="f" then
-      -- face (it's spacific for triangulated-mesh: exactly 3 vertices)
+      -- face (it's specific for triangulated-mesh: exactly 3 vertices)
       local v1,vn1,v2,vn2,v3,vn3 = line:match "f (%d+)//(%d+) (%d+)//(%d+) (%d+)//(%d+)"
       local triangle = { index_vertex[tonumber(v1)],
         index_vertex[tonumber(v2)], index_vertex[tonumber(v3)] }
