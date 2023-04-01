@@ -88,6 +88,7 @@ triangles_original, vertices_bounds = load_stl_file(file_path)
 print("bounding box", string.format("x %f %f, y %f %f, z %f %f", unpack(vertices_bounds) ) )
 
 triangles_original = load_obj_file"assets/teapot.obj"
+
 --*****************************************
 function point_translate(point, x,y,z)
   return {
@@ -157,9 +158,11 @@ function polygon_transform(polygon)
   polygon_transformed.color = polygon.color -- same color
   
   ---[[
+  if polygon[1].normal then
   polygon_transformed[1].normal = point_rotate_y(polygon[1].normal, radiants ) -- same normal WIP
   polygon_transformed[2].normal = point_rotate_y(polygon[2].normal, radiants ) -- same normal WIP
   polygon_transformed[3].normal = point_rotate_y(polygon[3].normal, radiants ) -- same normal WIP
+  end
   --]]
   
   return polygon_transformed
@@ -284,9 +287,16 @@ function perspective(polygon_iterated)
 end
 
 
-function vertex_color_from_vertex_normal(vertex, color, to_light, ambient_light_color)
-  assert(vertex.normal, "no vertex.normal")
-  local cos_angle = vdot(vertex.normal, to_light)
+function vertex_color_from_vertex_normal(triangle,vertex, color, to_light, ambient_light_color)
+  
+  local normal
+  if vertex.normal then
+    normal=vertex.normal
+  else
+    normal=polygon_normal(triangle)
+  end
+  
+  local cos_angle = vdot(normal, to_light)
   cos_angle = unit_clamp(cos_angle)
   color = scale3(cos_angle, color)
   color = sum3(color,ambient_light_color)
@@ -305,9 +315,9 @@ function shading_smooth_preset1(triangle)
   local color={0,1,1}
   local to_light = vunit({x=-1,y=-1,z=-1})
   
-  vertex_color_from_vertex_normal(triangle[1],color,to_light,ambient_light_color)
-  vertex_color_from_vertex_normal(triangle[2],color,to_light,ambient_light_color)
-  vertex_color_from_vertex_normal(triangle[3],color,to_light,ambient_light_color)
+  vertex_color_from_vertex_normal(triangle,triangle[1],color,to_light,ambient_light_color)
+  vertex_color_from_vertex_normal(triangle,triangle[2],color,to_light,ambient_light_color)
+  vertex_color_from_vertex_normal(triangle,triangle[3],color,to_light,ambient_light_color)
 
 end
 
