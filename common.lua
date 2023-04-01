@@ -78,16 +78,16 @@ function convert_polygons_to_triangles(polygons_original)
   return triangles_original
 end
 
-triangles_original = convert_polygons_to_triangles(polygons_original)
+triangles_original= convert_polygons_to_triangles(polygons_original)
 
 --*****************************************
 require("loader")
 local file_path = "assets/stl-ascii-teapot-axes.stl"
 local vertices_bounds
-triangles_original, vertices_bounds = load_stl_file(file_path)
-print("bounding box", string.format("x %f %f, y %f %f, z %f %f", unpack(vertices_bounds) ) )
+triangles_original= load_stl_file(file_path)
+----print("bounding box", string.format("x %f %f, y %f %f, z %f %f", unpack(vertices_bounds) ) )
 
-triangles_original = load_obj_file"assets/teapot.obj"
+---triangles_original= load_obj_file"assets/teapot.obj"
 
 --*****************************************
 function point_translate(point, x,y,z)
@@ -120,7 +120,7 @@ function point_rotate_y(point, radiants)
   return point_rotate_axes('xz', point, radiants)
 end
 
-function polygon_transform(polygon)
+function polygon_transform(polygon, degrees)
   local radiants = (degrees/360)*(math.pi*2)
   
   
@@ -129,10 +129,14 @@ function polygon_transform(polygon)
   for i,point in ipairs(polygon) do
     table.insert( polygon_origin, point_translate(point,
         
+    --[[
     -(vertices_bounds[2]-vertices_bounds[1])/2 ,
     -(vertices_bounds[4]-vertices_bounds[3])/2 ,
     -(vertices_bounds[6]-vertices_bounds[5])/2
-
+    --]]
+    
+    -25,-25,-25
+    
     ) ) -- -25,-25,-25 centering cube 50
 
   end
@@ -170,19 +174,24 @@ end
 
 degrees = 0.0
 
+local teapot= load_obj_file"assets/teapot.obj"
+
 function update(dt)
   degrees = (degrees + dt*5000/60 ) % 360
   
-  function polygons_transform(polygons)
-    local polygons_transformed = {}
+  local polygons_transformed = {}
+  function polygons_transform(polygons, degrees)
+    assert(polygons)
     for i,polygon in ipairs(polygons) do
-      table.insert(polygons_transformed, polygon_transform(polygon) )
+      table.insert(polygons_transformed, polygon_transform(polygon, degrees) )
     end
     return polygons_transformed
   end
   
-  polygons_transformed = polygons_transform(triangles_original)
+  polygons_transformed = polygons_transform(triangles_original, degrees)
   ---polygons_transformed = triangles_original
+ 
+  polygons_transformed = polygons_transform(teapot, (degrees+180)%360 )
   
   local s = 50
   local depth = 10
