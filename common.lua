@@ -422,13 +422,20 @@ function draw()
     for py = y_min,y_max do
       for px = x_min,x_max do
         
-        local check = false
-        ---check = in_convex_polygon(px, py, polygon_iterated)
-        check = inside_polygon(polygon_iterated, {x=px, y=py})
+        local point= {x=px, y=py}
+        local polygon= polygon_iterated
+        
+        local check_polygon= inside_polygon(polygon, point)
+
+        --*****
+        
+        local ra,rb,rc = barycentric_coordinates(point, polygon)
+        function quasi_zero(number) return math.abs(number) <= 0.05 end
+        local check_wireframe= quasi_zero(ra) or quasi_zero(rb) or quasi_zero(rc)
         
         --*****
         
-        if check then
+        if check_polygon then -- options: check_polygon , check_wireframe
           
           local rgb = polygon_iterated.color_diffuse
           
