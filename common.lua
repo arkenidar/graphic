@@ -425,17 +425,17 @@ function draw()
         local point= {x=px, y=py}
         local polygon= polygon_iterated
         
-        local check_polygon= inside_polygon(polygon, point)
+        local function check_polygon()
+          return inside_polygon(polygon, point)
+        end
 
-        --*****
+        local function check_wireframe()
+          local ra,rb,rc = barycentric_coordinates(point, polygon)
+          function quasi_zero(number) return math.abs(number) <= 0.05 end
+          return quasi_zero(ra) or quasi_zero(rb) or quasi_zero(rc)
+        end
         
-        local ra,rb,rc = barycentric_coordinates(point, polygon)
-        function quasi_zero(number) return math.abs(number) <= 0.05 end
-        local check_wireframe= quasi_zero(ra) or quasi_zero(rb) or quasi_zero(rc)
-        
-        --*****
-        
-        if check_polygon then -- options: check_polygon , check_wireframe
+        if check_polygon() then
           
           local rgb = polygon_iterated.color_diffuse
           
