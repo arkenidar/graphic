@@ -119,6 +119,39 @@ function color_interpolate(point, polygon)
   return sum3( scale3(ra, a.color), sum3( scale3(rb, b.color), scale3(rc, c.color) ) )
 end
 
+-- with pre-calculation per-polygon
+
+function barycentric_coords_precalculated_for_polygon(polygon)
+  local a=polygon[1]
+  local b=polygon[2]
+  local c=polygon[3]
+  local pre_baryc_coords={}
+  pre_baryc_coords.common=(b.y-c.y)*(a.x-c.x)+(c.x-b.x)*(a.y-c.y)
+  pre_baryc_coords.ax=b.y-c.y
+  pre_baryc_coords.ay=c.x-b.x
+  pre_baryc_coords.bx=c.y-a.y
+  pre_baryc_coords.by=a.x-c.x
+  pre_baryc_coords.cx=c.x
+  pre_baryc_coords.cy=c.y
+  return pre_baryc_coords
+end
+  
+function barycentric_coordinates_cache_by_polygon(point,pre)
+  local ra = (pre.ax*(point.x-pre.cx)+pre.ay*(point.y-pre.cy))/pre.common
+  local rb = (pre.bx*(point.x-pre.cx)+pre.by*(point.y-pre.cy))/pre.common
+  local rc = 1 - ra - rb
+  return {ra=ra,rb=rb,rc=rc}
+end
+
+function color_interpolate_precalc(point, polygon, pre)
+  local coords=barycentric_coordinates_cache_by_polygon(point,pre)
+  local ra,rb,rc=coords.ra, coords.rb, coords.rc
+  local a=polygon[1]
+  local b=polygon[2]
+  local c=polygon[3]
+  return sum3( scale3(ra, a.color), sum3( scale3(rb, b.color), scale3(rc, c.color) ) )
+end
+
 -- *********************************
 
 function algebra_module_test()

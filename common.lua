@@ -419,6 +419,8 @@ function draw()
     y_min=math.floor(y_min)
     y_max=math.floor(y_max)
     
+    local pre_baryc_coords = barycentric_coords_precalculated_for_polygon(polygon_iterated)
+    
     for py = y_min,y_max do
       for px = x_min,x_max do
         
@@ -466,7 +468,8 @@ function draw()
           local current_depth = depth_buffer[py][px]
           if z < current_depth then
             
-            if not rgb then rgb = color_interpolate({x=px, y=py}, polygon_iterated) end
+            ---if not rgb then rgb = color_interpolate({x=px, y=py}, polygon_iterated) end
+            if not rgb then rgb = color_interpolate_precalc({x=px, y=py}, polygon, pre_baryc_coords) end
             
             draw_pixel(rgb, {px,py})
             
