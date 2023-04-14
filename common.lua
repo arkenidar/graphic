@@ -84,7 +84,8 @@ triangles_original= convert_polygons_to_triangles(polygons_original)
 require("loader")
 local file_path = "assets/stl-ascii-teapot-axes.stl"
 local vertices_bounds
-triangles_original= load_stl_file(file_path)
+---triangles_original= load_stl_file(file_path)
+triangles_original = {}
 ----print("bounding box", string.format("x %f %f, y %f %f, z %f %f", unpack(vertices_bounds) ) )
 
 ---triangles_original= load_obj_file"assets/teapot.obj"
@@ -174,10 +175,10 @@ end
 
 degrees = 0.0
 
-local teapot= load_obj_file"assets/teapot.obj"
+local teapot= load_obj_file"assets/ToughGuy2.obj"
 
 function update(dt)
-  degrees = (degrees + dt*5000/60 ) % 360
+  degrees = (degrees + dt*200 ) % 360
   
   local polygons_transformed = {}
   function polygons_transform(polygons, degrees)
@@ -321,7 +322,7 @@ function shading_smooth_preset1(triangle)
     ambient_light_intensity,
     ambient_light_intensity}
 
-  local color={0,1,1}
+  local color={1,0.5,0.5} -- 0,1,1
   local to_light = vunit({x=-1,y=-1,z=-1})
   
   vertex_color_from_vertex_normal(triangle,triangle[1],color,to_light,ambient_light_color)
@@ -387,6 +388,7 @@ function draw()
   -- testing: function color_interpolate(point, polygon)
   --polygons_to_render = {}
   
+  --[[
   table.insert(polygons_to_render,
     {
       {x=300, y=10, z=10, color={1,1,0}},
@@ -394,6 +396,7 @@ function draw()
       {x=10,  y=300,z=10, color={0,1,0}},
     }
   )
+  --]]
 
   for i,polygon_iterated in ipairs(polygons_to_render) do
     
@@ -441,7 +444,7 @@ function draw()
           
           local rgb = polygon_iterated.color_diffuse
           
-          function depth(px, py, polygon_iterated)
+          local function depth(px, py, polygon_iterated)
     
             if not polygon_iterated.normal then -- caching, it's cached
               polygon_iterated.normal = polygon_normal(polygon_iterated)
@@ -463,13 +466,16 @@ function draw()
             return z
           end
           
-          local z = depth(px,py, polygon_iterated)
+          local point = {x=px, y=py}
+          
+          ---local z = depth(px,py, polygon_iterated) -- NOT precalc
+          local z = position_interpolate_precalc(point, polygon, pre_baryc_coords).z
           
           local current_depth = depth_buffer[py][px]
           if z < current_depth then
             
-            ---if not rgb then rgb = color_interpolate({x=px, y=py}, polygon_iterated) end
-            if not rgb then rgb = color_interpolate_precalc({x=px, y=py}, polygon, pre_baryc_coords) end
+            ---if not rgb then rgb = color_interpolate({x=px, y=py}, polygon_iterated) end -- NOT precalc
+            if not rgb then rgb = color_interpolate_precalc(point, polygon, pre_baryc_coords) end
             
             draw_pixel(rgb, {px,py})
             

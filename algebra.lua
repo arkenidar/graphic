@@ -152,6 +152,15 @@ function color_interpolate_precalc(point, polygon, pre)
   return sum3( scale3(ra, a.color), sum3( scale3(rb, b.color), scale3(rc, c.color) ) )
 end
 
+function position_interpolate_precalc(point, polygon, pre)
+  local coords=barycentric_coordinates_cache_by_polygon(point,pre)
+  local ra,rb,rc=coords.ra, coords.rb, coords.rc
+  local a=polygon[1]
+  local b=polygon[2]
+  local c=polygon[3]
+  return vadd( vscale(ra, a), vadd( vscale(rb, b), vscale(rc, c) ) )
+end
+
 -- *********************************
 
 function algebra_module_test()
