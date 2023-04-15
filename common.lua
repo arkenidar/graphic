@@ -178,7 +178,10 @@ degrees = 0.0
 local teapot= load_obj_file"assets/ToughGuy2.obj"
 
 function update(dt)
-  degrees = (degrees + dt*200 ) % 360
+  local degrees_increment
+  degrees_increment = 25 -- fixed increment
+  ---degrees_increment = dt*200 -- proportional increment
+  degrees = (degrees + degrees_increment ) % 360
   
   local polygons_transformed = {}
   function polygons_transform(polygons, degrees)
