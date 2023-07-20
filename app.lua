@@ -24,11 +24,24 @@ https://gist.github.com/creationix/1213280/a97d7051decb2f1d3e8844186bbff49b64427
 --     gcc -I /usr/include/SDL -E stub.c | grep -v '^#' > ffi_SDL.h
 --]]
 ffi.cdef( io.open('ffi_defs.h','r'):read('*a') )
-local SDL = ffi.load('SDL2')
 
-SDL.SDL_Init(0)
-local window = SDL.SDL_CreateWindow("", 50,50, render_width,render_height, 0)
-local window_surface = SDL.SDL_GetWindowSurface(window)
+local SDL = ffi.load('SDL2')
+local SDL_image = ffi.load('SDL2_image')
+
+_G=setmetatable(_G, {
+	__index = function(self, index) -- index function CASE
+    if "SDL"==string.sub(index,1,3) then
+      return SDL[index]
+    end
+    if "IMG"==string.sub(index,1,3) then
+      return SDL_image[index]
+    end
+	end
+})
+
+SDL_Init(0)
+local window = SDL_CreateWindow("", 50,50, render_width,render_height, 0)
+local window_surface = SDL_GetWindowSurface(window)
 
 function rect_from_xywh(xywh)
   if xywh == nil then return nil end
@@ -40,7 +53,7 @@ function rect_from_xywh(xywh)
   return rect
 end
 function surface_draw_rect(rgb, xywh)
-  SDL.SDL_FillRect(window_surface, rect_from_xywh(xywh), SDL.SDL_MapRGB(window_surface.format,rgb[1],rgb[2],rgb[3]))
+  SDL_FillRect(window_surface, rect_from_xywh(xywh), SDL_MapRGB(window_surface.format,rgb[1],rgb[2],rgb[3]))
 end
 
 --draw_pixel = surface_draw_rect
@@ -82,35 +95,35 @@ end
 
 --]]
 
-local time_ticks = SDL.SDL_GetTicks()
+local time_ticks = SDL_GetTicks()
 local event = ffi.new("SDL_Event")
 local looping = true
 while looping do
-  while SDL.SDL_PollEvent(event) ~= 0 do
-    if event.type == SDL.SDL_QUIT or
-    ( event.type == SDL.SDL_KEYDOWN and event.key.keysym.sym == SDL.SDLK_ESCAPE ) 
+  while SDL_PollEvent(event) ~= 0 do
+    if event.type == SDL_QUIT or
+    ( event.type == SDL_KEYDOWN and event.key.keysym.sym == SDLK_ESCAPE ) 
     then
         looping = false
     end
   end
 
   local dt -- elapsed time in fractions of seconds
-  delta_ticks = SDL.SDL_GetTicks() - time_ticks
-  time_ticks = SDL.SDL_GetTicks()
+  delta_ticks = SDL_GetTicks() - time_ticks
+  time_ticks = SDL_GetTicks()
   dt = delta_ticks / 1000 -- milliseconds to seconds
 
   update(dt)
   
-  --SDL.SDL_FillRect(window_surface,nil,0)
+  --SDL_FillRect(window_surface,nil,0)
   surface_draw_rect({0,0,0})
   
   ---surface_draw_rect({0,255,0}, {50,50}) -- test pixel draw
   
   draw()
   
-  SDL.SDL_UpdateWindowSurface(window)
+  SDL_UpdateWindowSurface(window)
 
 end
 
-SDL.SDL_DestroyWindow(window)
-SDL.SDL_Quit()
+SDL_DestroyWindow(window)
+SDL_Quit()
