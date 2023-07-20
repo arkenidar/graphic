@@ -2,9 +2,46 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "luajit app.lua",
+            "name": "[bundled] love . : (Windows) Launch",
+            "type": "cppvsdbg", // https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools
             "request": "launch",
-            "type": "lua",
+            "program": "${workspaceFolder}\\ms-windows-binaries\\love-11.4-win64\\love.exe",
+            "args": ["${workspaceFolder}"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            //"console": "externalTerminal"
+        }
+        ,
+        {
+            "name": "love . : (Windows) Launch",
+            "type": "cppvsdbg", // https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools
+            "request": "launch",
+            "program": "C:\\apps\\love2d\\love.exe",
+            "args": ["${workspaceFolder}"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            //"console": "externalTerminal"
+        }
+        ,
+        {
+            /* lua-local is needed for loading e.g. require("socket") */
+            "name": "lua-local: luajit app.lua (lua-local loads installed modules such as 'socket' module)",
+            "request": "launch",
+            "type": "lua-local", // https://marketplace.visualstudio.com/items?itemName=tomblind.local-lua-debugger-vscode
+
+            "program": {
+                "lua": "luajit", // "lua", "lua5.1" (etc), or "luajit" etc
+                "file": "${workspaceFolder}/app.lua"
+            },
+            "stopOnEntry": false
+        }
+        ,
+        {
+            "name": "lua: luajit app.lua (extension bundles luajit, can't load installed modules -> see lua-local)",
+            "request": "launch",
+            "type": "lua", // https://marketplace.visualstudio.com/items?itemName=actboy168.lua-debug
             "luaVersion": "jit",
             "program": "${workspaceFolder}/app.lua",
             "stopOnEntry": false
