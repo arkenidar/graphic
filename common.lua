@@ -175,7 +175,7 @@ end
 
 degrees = 0.0
 
-local teapot= load_obj_file"assets/ToughGuy2.obj"
+local teapot= load_obj_file"assets/teapot.obj" --ToughGuy2.obj
 
 function update(dt)
   local degrees_increment
