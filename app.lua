@@ -26,7 +26,7 @@ https://gist.github.com/creationix/1213280/a97d7051decb2f1d3e8844186bbff49b64427
 ffi.cdef( io.open('ffi_defs.h','r'):read('*a') )
 
 local SDL = ffi.load('SDL2')
-local SDL_image = ffi.load('SDL2_image')
+local SDL_image ----= ffi.load('SDL2_image')
 
 _G=setmetatable(_G, {
 	__index = function(self, index) -- index function CASE
