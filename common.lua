@@ -175,12 +175,11 @@ end
 
 degrees = 0.0
 
-local teapot= load_obj_file"assets/teapot.obj" --ToughGuy2.obj
+local obj = load_obj_file("assets/head.obj")
 
 function update(dt)
   local degrees_increment
-  degrees_increment = 25 -- fixed increment
-  ---degrees_increment = dt*200 -- proportional increment
+  degrees_increment = dt*45
   degrees = (degrees + degrees_increment ) % 360
   
   local polygons_transformed = {}
@@ -195,7 +194,7 @@ function update(dt)
   polygons_transformed = polygons_transform(triangles_original, degrees)
   ---polygons_transformed = triangles_original
  
-  polygons_transformed = polygons_transform(teapot, (degrees+180)%360 )
+  polygons_transformed = polygons_transform(obj, (degrees+180)%360 )
   
   local s = 50
   local depth = 10
@@ -480,7 +479,7 @@ function draw()
             ---if not rgb then rgb = color_interpolate({x=px, y=py}, polygon_iterated) end -- NOT precalc
             if not rgb then rgb = color_interpolate_precalc(point, polygon, pre_baryc_coords) end
             
-            draw_pixel(rgb, {px,py})
+            draw_pixel(rgb, {px,(render_height-1)-py}) -- mirrored y axis
             
             depth_buffer[py][px] = z -- successive depth
           end
