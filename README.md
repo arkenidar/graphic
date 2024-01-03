@@ -20,6 +20,8 @@
 
 ## screens
 
-![3D Mesh importing from STL format](docs/3d-teapot-from-2d.gif?raw=true "demo")
+![Smooth-shading 3D Mesh importing from OBJ format](docs/head--Peek--04-01-2024--00-37.gif?raw=true "shading demo")
+
+![Flat-shading 3D Mesh importing from STL format](docs/3d-teapot-from-2d.gif?raw=true "first demo")
 
 !["luajit app.lua" and "love ." similarity](docs/Screenshot_20221122_195044.png?raw=true "running it")
