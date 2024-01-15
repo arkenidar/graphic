@@ -7,7 +7,7 @@
             "type": "lua-local",
             "program": {
                 "lua": "luajit",
-                "file": "${workspaceFolder}/app.lua"
+                "file": "app.lua"
             },
             "cwd": "${workspaceFolder}",
             "stopOnEntry": false

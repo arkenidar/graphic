@@ -2,7 +2,7 @@
 
 require("lldebugger").start()
 
-require('common-preceding')
+---require('common-preceding')
 
 if love == nil then
   -- not using Love2D
@@ -14,8 +14,8 @@ function love.load()
   -- from: http://notebook.kulchenko.com/zerobrane/love2d-debugging
   if arg[#arg] == "-debug" then require("mobdebug").start() end
 
-  love.window.setTitle("")
-  love.window.setMode(800, 600)
+  love.window.setTitle("[arkenidar/graphic] love .")
+  love.window.setMode(300, 300)
 end
 
 require('common')

@@ -2,7 +2,7 @@
 
 require('algebra')
 
-s = 50      -- size
+s = 50        -- size
 
 polygon_x = { -- x=0
   { z = 0, y = 0, x = 0 },
@@ -141,7 +141,7 @@ function polygon_transform(polygon, degrees)
 
       -25, -25, -25
 
-    ))  -- -25,-25,-25 centering cube 50
+    )) -- -25,-25,-25 centering cube 50
   end
 
   --[[
@@ -152,8 +152,8 @@ function polygon_transform(polygon, degrees)
   --]]
 
   local polygon_rotated2 = {}
-  for i, point in ipairs(polygon_origin) do                            --- polygon_rotated1
-    table.insert(polygon_rotated2, point_rotate_y(point, radiants))    -- radiants | 0
+  for i, point in ipairs(polygon_origin) do                         --- polygon_rotated1
+    table.insert(polygon_rotated2, point_rotate_y(point, radiants)) -- radiants | 0
   end
 
   local polygon_rotated_translated = {}
@@ -267,7 +267,7 @@ function shading(polygon_iterated)
   if not polygon_iterated.color_diffuse then
     local color = polygon_iterated.color or { 1, 1, 0 } -- default if missing
 
-    local face_normal = normal_vector               -- not cached
+    local face_normal = normal_vector                   -- not cached
 
     local to_light = vunit({ x = -1, y = -1, z = -1 })
 
@@ -289,6 +289,7 @@ function shading(polygon_iterated)
   end
 end
 
+--[[
 function perspective(polygon_iterated)
   local vanishing_point = { x = render_width / 2, y = render_height / 2 }
 
@@ -298,6 +299,7 @@ function perspective(polygon_iterated)
     vertex.y = (vertex.y - vanishing_point.y) / z_scaling + vanishing_point.y
   end
 end
+--]]
 
 function vertex_color_from_vertex_normal(triangle, vertex, color, to_light, ambient_light_color)
   local normal
@@ -331,6 +333,8 @@ function shading_smooth_preset1(triangle)
 end
 
 function draw()
+  local render_width, render_height = 300, 300
+
   for i, polygon_iterated in ipairs(polygons_to_render) do
     shading_smooth_preset1(polygon_iterated)
   end
@@ -473,7 +477,7 @@ function draw()
 
             draw_pixel(rgb, { px, (render_height - 1) - py }) -- mirrored y axis
 
-            depth_buffer[py][px] = z                   -- successive depth
+            depth_buffer[py][px] = z                          -- successive depth
           end
         end
       end
