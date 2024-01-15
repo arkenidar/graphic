@@ -1,3 +1,5 @@
+--require("lldebugger").start()
+
 require('algebra')
 
 s = 50      -- size
@@ -175,7 +177,8 @@ end
 
 degrees = 0.0
 
-local obj = load_obj_file("assets/head.obj")
+local obj_cube = load_obj_file("assets/head.obj")
+--obj_cube = {} -- WIP to simplify
 
 function update(dt)
   local degrees_increment
@@ -194,7 +197,7 @@ function update(dt)
   polygons_transformed = polygons_transform(triangles_original, degrees)
   ---polygons_transformed = triangles_original
 
-  polygons_transformed = polygons_transform(obj, (degrees + 180) % 360)
+  polygons_transformed = polygons_transform(obj_cube, (degrees + 180) % 360)
 
   local s = 50
   local depth = 10
@@ -208,7 +211,7 @@ function update(dt)
 
   local polygons_transformed_addon
   polygons_transformed_addon = {
-    ---polygon_z2, -- WIP
+    polygon_z2, -- WIP TODO turno off this debug helper, comment-out this line
   }
   polygons_transformed_addon = convert_polygons_to_triangles(
     polygons_transformed_addon)
