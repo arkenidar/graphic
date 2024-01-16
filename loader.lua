@@ -25,6 +25,15 @@ function load_obj_file(file_path)
       local v1, vn1, v2, vn2, v3, vn3 = line:match "f (%d+)//(%d+) (%d+)//(%d+) (%d+)//(%d+)"
       local triangle = { index_vertex[tonumber(v1)],
         index_vertex[tonumber(v2)], index_vertex[tonumber(v3)] }
+      -- do vertex copy (no "shared vertex" problems with setting different "normals", collision)
+      --[[bugfix. no shared vertices causing over-writing of normals. simple way, so no need to rewrite other parts of the program.]]
+      ---[[
+      local function vertex_copy(vertex)
+        return { x = vertex.x, y = vertex.y, z = vertex.z }
+      end
+      triangle = { vertex_copy(triangle[1]), vertex_copy(triangle[2]), vertex_copy(triangle[3]), }
+      --]]
+      -- normals
       triangle[1].normal = index_vertex_normal[tonumber(vn1)]
       triangle[2].normal = index_vertex_normal[tonumber(vn2)]
       triangle[3].normal = index_vertex_normal[tonumber(vn3)]
