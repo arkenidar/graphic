@@ -1,6 +1,10 @@
 -- main.lua is for Love2D (https://love2d.org)
 
-require("lldebugger").start()
+-- Love2D: use "local-lua-debugger-vscode" only if launched through "ms-vscode"
+if os.getenv("LOCAL_LUA_DEBUGGER_VSCODE") == "1" then
+  -- don't use debugging unless launched through "lldebugger" (ms-vscode)
+  require("lldebugger").start()
+end
 
 ---require('common-preceding')
 
