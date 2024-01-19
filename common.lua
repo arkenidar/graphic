@@ -375,7 +375,7 @@ function draw()
       --]]
 
       function halfplane(px, p1, p2)
-        return ((p2.x - p1.x) * (px.y - p1.y) - (p2.y - p1.y) * (px.x - p1.x)) >= 0
+        return ((p2.x - p1.x) * (px.y - p1.y) - (p2.y - p1.y) * (px.x - p1.x)) > 0
       end
 
       if halfplane(point, last, current) then
