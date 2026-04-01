@@ -24,8 +24,23 @@ https://gist.github.com/creationix/1213280/a97d7051decb2f1d3e8844186bbff49b64427
 --]]
 ffi.cdef(io.open("ffi_defs.h", "r"):read("*a"))
 
-local SDL = ffi.load("SDL2")
+--- local SDL = ffi.load("SDL2")
 local SDL_image  ----= ffi.load('SDL2_image')
+
+local function ffi_load_any(...)
+    local last_error
+    for index = 1, select("#", ...) do
+        local library_name = select(index, ...)
+        local ok, library_or_error = pcall(ffi.load, library_name)
+        if ok then
+            return library_or_error
+        end
+        last_error = library_or_error
+    end
+    error(last_error)
+end
+
+local SDL = ffi_load_any("SDL2", "libSDL2-2.0.so.0", "libSDL2.so")
 
 _G =
     setmetatable(
