@@ -13,17 +13,17 @@ function load_obj_file(file_path)
     local type = line:match "(%S+) .+"
     if type == "v" then
       -- vertex
-      local x, y, z = line:match "v (%S+) (%S+) (%S+)"
+      local x, y, z = line:match "v%s+(%S+)%s+(%S+)%s+(%S+)"
       local vertex = { x = tonumber(x), y = tonumber(y), z = tonumber(z) }
       table.insert(index_vertex, vertex)
     elseif type == "vn" then
       -- vertex normal
-      local x, y, z = line:match "vn (%S+) (%S+) (%S+)"
+      local x, y, z = line:match "vn%s+(%S+)%s+(%S+)%s+(%S+)"
       local vertex_normal = { x = tonumber(x), y = tonumber(y), z = tonumber(z) }
       table.insert(index_vertex_normal, vertex_normal)
     elseif type == "vt" then
       -- texture coordinate
-      local u, v = line:match "vt (%S+) (%S+)"
+      local u, v = line:match "vt%s+(%S+)%s+(%S+)"
       table.insert(index_vertex_texcoord, { tonumber(u), tonumber(v) })
     elseif type == "f" then
       -- face (triangulated-mesh: exactly 3 vertices)
