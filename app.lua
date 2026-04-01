@@ -139,7 +139,7 @@ local function create_checker_bmp(filename, size, sq_count)
             if is_light then
                 row[#row + 1] = string.char(255, 255, 255)  -- BGR white
             else
-                row[#row + 1] = string.char(0, 0, 180)       -- BGR dark blue
+                row[#row + 1] = string.char(180, 0, 0)       -- BGR dark blue
             end
         end
         local row_str = table.concat(row)
