@@ -92,6 +92,23 @@ triangles_original = {}
 
 ---triangles_original= load_obj_file"assets/teapot.obj"
 
+function mesh_center(triangles)
+  local x_min, x_max = math.huge, -math.huge
+  local y_min, y_max = math.huge, -math.huge
+  local z_min, z_max = math.huge, -math.huge
+  for _, tri in ipairs(triangles) do
+    for _, v in ipairs(tri) do
+      if v.x < x_min then x_min = v.x end
+      if v.x > x_max then x_max = v.x end
+      if v.y < y_min then y_min = v.y end
+      if v.y > y_max then y_max = v.y end
+      if v.z < z_min then z_min = v.z end
+      if v.z > z_max then z_max = v.z end
+    end
+  end
+  return { x = (x_min + x_max) / 2, y = (y_min + y_max) / 2, z = (z_min + z_max) / 2 }
+end
+
 --*****************************************
 function point_translate(point, x, y, z)
   return {
@@ -124,24 +141,15 @@ function point_rotate_y(point, radiants)
   return point_rotate_axes('xz', point, radiants)
 end
 
-function polygon_transform(polygon, degrees)
+function polygon_transform(polygon, degrees, center)
+  center = center or { x = 0, y = 0, z = 0 }
   local radiants = (degrees / 360) * (math.pi * 2)
-
-
 
   local polygon_origin = {}
   for i, point in ipairs(polygon) do
     table.insert(polygon_origin, point_translate(point,
-
-      --[[
-    -(vertices_bounds[2]-vertices_bounds[1])/2 ,
-    -(vertices_bounds[4]-vertices_bounds[3])/2 ,
-    -(vertices_bounds[6]-vertices_bounds[5])/2
-    --]]
-
-      -25, -25, -25
-
-    )) -- -25,-25,-25 centering cube 50
+      -center.x, -center.y, -center.z
+    ))
   end
 
   --[[
@@ -158,7 +166,7 @@ function polygon_transform(polygon, degrees)
 
   local polygon_rotated_translated = {}
   for i, point in ipairs(polygon_rotated2) do
-    table.insert(polygon_rotated_translated, point_translate(point, 150, 150, -200))
+    table.insert(polygon_rotated_translated, point_translate(point, 150, 150, -400))
   end
 
   local polygon_transformed = polygon_rotated_translated
@@ -184,9 +192,14 @@ end
 degrees = 0.0
 
 local obj_cube = load_obj_file("assets/head.obj")
+obj_cube.center = mesh_center(obj_cube)
 --obj_cube = {} -- WIP to simplify
 
 local obj_uv_plane = load_obj_file("assets/uv_plane.obj")
+obj_uv_plane.center = mesh_center(obj_uv_plane)
+
+local obj_floor = load_obj_file("assets/floor_plane.obj")
+obj_floor.center = { x = 0, y = 0, z = 0 } -- preserve y=-100 world position
 
 function update(dt)
   local degrees_increment
@@ -196,8 +209,9 @@ function update(dt)
   local polygons_transformed = {}
   function polygons_transform(polygons, degrees)
     assert(polygons)
+    local center = polygons.center or { x = 0, y = 0, z = 0 }
     for i, polygon in ipairs(polygons) do
-      table.insert(polygons_transformed, polygon_transform(polygon, degrees))
+      table.insert(polygons_transformed, polygon_transform(polygon, degrees, center))
     end
     return polygons_transformed
   end
@@ -206,7 +220,8 @@ function update(dt)
   ---polygons_transformed = triangles_original
 
   polygons_transformed = polygons_transform(obj_cube, (degrees + 180) % 360)
-  polygons_transformed = polygons_transform(obj_uv_plane, 0)
+  polygons_transformed = polygons_transform(obj_floor, 0)
+  ---polygons_transformed = polygons_transform(obj_uv_plane, 0)
 
   local s = 50
   local depth = 10
@@ -285,7 +300,7 @@ function shading(polygon_iterated)
 
     color = scale3(cos_angle, color)
 
-    local ambient_light_intensity = 0.2
+    local ambient_light_intensity = 0.4
     local ambient_light_color = {
       ambient_light_intensity,
       ambient_light_intensity,
@@ -298,17 +313,16 @@ function shading(polygon_iterated)
   end
 end
 
---[[
 function perspective(polygon_iterated)
-  local vanishing_point = { x = render_width / 2, y = render_height / 2 }
-
+  local cx, cy = 150, 150  -- screen center (matches window 300x300)
+  local focal = 200         -- focal length; objects at z=-200 appear at natural size
   for i, vertex in ipairs(polygon_iterated) do
-    local z_scaling = (-vertex.z + 100) / 100
-    vertex.x = (vertex.x - vanishing_point.x) / z_scaling + vanishing_point.x
-    vertex.y = (vertex.y - vanishing_point.y) / z_scaling + vanishing_point.y
+    vertex.inv_z = 1.0 / (-vertex.z)   -- store for perspective-correct UV
+    vertex.x = (vertex.x - cx) * (focal * vertex.inv_z) + cx
+    vertex.y = (vertex.y - cy) * (focal * vertex.inv_z) + cy
+    -- vertex.z left unchanged (used for depth testing)
   end
 end
---]]
 
 function vertex_color_from_vertex_normal(triangle, vertex, color, to_light, ambient_light_color)
   local normal
@@ -327,18 +341,29 @@ function vertex_color_from_vertex_normal(triangle, vertex, color, to_light, ambi
 end
 
 function shading_smooth_preset1(triangle)
-  local ambient_light_intensity = 0.2
+  local ambient_light_intensity = 0.4
   local ambient_light_color = {
     ambient_light_intensity,
     ambient_light_intensity,
     ambient_light_intensity }
 
-  local color = { 1, 0.5, 0.5 } -- 0,1,1
-  local to_light = vunit({ x = -1, y = -1, z = -1 })
+  local surface_color = { 1, 0.5, 0.5 }
 
-  vertex_color_from_vertex_normal(triangle, triangle[1], color, to_light, ambient_light_color)
-  vertex_color_from_vertex_normal(triangle, triangle[2], color, to_light, ambient_light_color)
-  vertex_color_from_vertex_normal(triangle, triangle[3], color, to_light, ambient_light_color)
+  local lights = {
+    vunit({ x = -1, y = -1, z = -1 }), -- top-left-back
+    vunit({ x =  1, y =  0, z = -1 }), -- right-front
+    vunit({ x =  0, y =  1, z =  0 }), -- top-down (illuminates floor)
+  }
+
+  for _, vertex in ipairs({ triangle[1], triangle[2], triangle[3] }) do
+    local normal = vertex.normal or polygon_normal(triangle)
+    local diffuse = { 0, 0, 0 }
+    for _, to_light in ipairs(lights) do
+      local cos = unit_clamp(vdot(normal, to_light))
+      diffuse = sum3(diffuse, scale3(cos, surface_color))
+    end
+    vertex.color = clamp3(sum3(diffuse, ambient_light_color))
+  end
 end
 
 function draw()
@@ -349,7 +374,7 @@ function draw()
   end
 
   for i, polygon_iterated in ipairs(polygons_to_render) do
-    ---perspective(polygon_iterated) -- WIP improve
+    perspective(polygon_iterated)
   end
 
   -- z-buffer
@@ -357,7 +382,7 @@ function draw()
   for py = 0, render_height do
     local line = {}
     for px = 0, render_width do
-      table.insert(line, px, math.huge) -- reset value
+      table.insert(line, px, -math.huge) -- reset value
     end
     table.insert(depth_buffer, py, line)
   end
@@ -384,7 +409,7 @@ function draw()
       --]]
 
       function halfplane(px, p1, p2)
-        return ((p2.x - p1.x) * (px.y - p1.y) - (p2.y - p1.y) * (px.x - p1.x)) > 0
+        return ((p2.x - p1.x) * (px.y - p1.y) - (p2.y - p1.y) * (px.x - p1.x)) < 0
       end
 
       if halfplane(point, last, current) then
@@ -480,7 +505,7 @@ function draw()
           local z = position_interpolate_precalc(point, polygon, pre_baryc_coords).z
 
           local current_depth = depth_buffer[py][px]
-          if z < current_depth then
+          if z > current_depth then
             ---if not rgb then rgb = color_interpolate({x=px, y=py}, polygon_iterated) end -- NOT precalc
             if not rgb then rgb = color_interpolate_precalc(point, polygon, pre_baryc_coords) end
 
