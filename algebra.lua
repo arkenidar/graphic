@@ -152,6 +152,16 @@ function color_interpolate_precalc(point, polygon, pre)
   return sum3(scale3(ra, a.color), sum3(scale3(rb, b.color), scale3(rc, c.color)))     -- ra*a + rb*b + rc*c
 end
 
+function uv_interpolate_precalc(point, polygon, pre)
+  local coords = barycentric_coordinates_cache_by_polygon(point, pre)
+  local ra, rb, rc = coords.ra, coords.rb, coords.rc
+  local a, b, c = polygon[1], polygon[2], polygon[3]
+  return {
+    ra * a.uv[1] + rb * b.uv[1] + rc * c.uv[1],
+    ra * a.uv[2] + rb * b.uv[2] + rc * c.uv[2],
+  }
+end
+
 function position_interpolate_precalc(point, polygon, pre)
   local coords = barycentric_coordinates_cache_by_polygon(point, pre)
   local ra, rb, rc = coords.ra, coords.rb, coords.rc

@@ -24,6 +24,12 @@ https://gist.github.com/creationix/1213280/a97d7051decb2f1d3e8844186bbff49b64427
 --]]
 ffi.cdef(io.open("ffi_defs.h", "r"):read("*a"))
 
+-- SDL_image declarations not included in ffi_defs.h
+ffi.cdef [[
+  SDL_Surface* IMG_Load(const char *file);
+  void IMG_Quit(void);
+]]
+
 --- local SDL = ffi.load("SDL2")
 --- local SDL_image = ffi.load("SDL2_image")
 
@@ -89,6 +95,85 @@ function draw_pixel(rgb, xy)
 end
 
 require("common")
+
+-- Generate a 24-bit checkerboard BMP file (bottom-up rows, no compression)
+local function create_checker_bmp(filename, size, sq_count)
+    local w, h = size, size
+    local row_padded = math.floor((w * 3 + 3) / 4) * 4
+    local pixel_data_size = row_padded * h
+    local file_size = 54 + pixel_data_size
+
+    local function u32le(n)
+        local b0 = n % 256; n = math.floor(n / 256)
+        local b1 = n % 256; n = math.floor(n / 256)
+        local b2 = n % 256; n = math.floor(n / 256)
+        local b3 = n % 256
+        return string.char(b0, b1, b2, b3)
+    end
+    local function u16le(n)
+        return string.char(n % 256, math.floor(n / 256) % 256)
+    end
+
+    local f = io.open(filename, "wb")
+    -- File header (14 bytes)
+    f:write("BM")
+    f:write(u32le(file_size))
+    f:write(u16le(0)); f:write(u16le(0))   -- reserved
+    f:write(u32le(54))                      -- pixel data offset
+    -- BITMAPINFOHEADER (40 bytes)
+    f:write(u32le(40))    -- header size
+    f:write(u32le(w))
+    f:write(u32le(h))
+    f:write(u16le(1))     -- color planes
+    f:write(u16le(24))    -- bits per pixel
+    f:write(u32le(0))     -- no compression
+    f:write(u32le(pixel_data_size))
+    f:write(u32le(2835)); f:write(u32le(2835))  -- pixels per meter X/Y
+    f:write(u32le(0)); f:write(u32le(0))         -- color table
+    -- Pixel data: BMP is bottom-up (y=0 row stored last)
+    local sq = size / sq_count
+    for y = h - 1, 0, -1 do
+        local row = {}
+        for x = 0, w - 1 do
+            local is_light = (math.floor(x / sq) + math.floor(y / sq)) % 2 == 0
+            if is_light then
+                row[#row + 1] = string.char(255, 255, 255)  -- BGR white
+            else
+                row[#row + 1] = string.char(0, 0, 180)       -- BGR dark blue
+            end
+        end
+        local row_str = table.concat(row)
+        while #row_str % 4 ~= 0 do row_str = row_str .. "\0" end
+        f:write(row_str)
+    end
+    f:close()
+end
+
+create_checker_bmp("assets/checker.bmp", 128, 8)
+
+local tex_surface = IMG_Load("assets/checker.bmp")
+assert(tex_surface ~= nil, "Failed to load assets/checker.bmp")
+
+function sample_texture(u, v)
+    -- wrap UV into [0, 1)
+    u = u - math.floor(u)
+    v = v - math.floor(v)
+    local px = math.max(0, math.min(tex_surface.w - 1, math.floor(u * tex_surface.w)))
+    local py = math.max(0, math.min(tex_surface.h - 1, math.floor(v * tex_surface.h)))
+    local pixels = ffi.cast("uint8_t*", tex_surface.pixels)
+    local bpp = tex_surface.format.BytesPerPixel
+    local offset = py * tex_surface.pitch + px * bpp
+    -- pack bytes little-endian into uint32 for SDL_GetRGB
+    local pixel = 0
+    for i = bpp - 1, 0, -1 do
+        pixel = pixel * 256 + pixels[offset + i]
+    end
+    local r = ffi.new("Uint8[1]")
+    local g = ffi.new("Uint8[1]")
+    local b = ffi.new("Uint8[1]")
+    SDL.SDL_GetRGB(pixel, tex_surface.format, r, g, b)
+    return { r[0] / 255, g[0] / 255, b[0] / 255 }
+end
 
 --[[
 function draw()

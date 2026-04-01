@@ -170,6 +170,12 @@ function polygon_transform(polygon, degrees)
     polygon_transformed[2].normal = point_rotate_y(polygon[2].normal, radiants) -- same normal WIP
     polygon_transformed[3].normal = point_rotate_y(polygon[3].normal, radiants) -- same normal WIP
   end
+
+  if polygon[1].uv then
+    polygon_transformed[1].uv = polygon[1].uv
+    polygon_transformed[2].uv = polygon[2].uv
+    polygon_transformed[3].uv = polygon[3].uv
+  end
   --]]
 
   return polygon_transformed
@@ -179,6 +185,8 @@ degrees = 0.0
 
 local obj_cube = load_obj_file("assets/head.obj")
 --obj_cube = {} -- WIP to simplify
+
+local obj_uv_plane = load_obj_file("assets/uv_plane.obj")
 
 function update(dt)
   local degrees_increment
@@ -198,6 +206,7 @@ function update(dt)
   ---polygons_transformed = triangles_original
 
   polygons_transformed = polygons_transform(obj_cube, (degrees + 180) % 360)
+  polygons_transformed = polygons_transform(obj_uv_plane, 0)
 
   local s = 50
   local depth = 10
@@ -474,6 +483,13 @@ function draw()
           if z < current_depth then
             ---if not rgb then rgb = color_interpolate({x=px, y=py}, polygon_iterated) end -- NOT precalc
             if not rgb then rgb = color_interpolate_precalc(point, polygon, pre_baryc_coords) end
+
+            -- texture mapping: blend diffuse texture with Gouraud color
+            if polygon[1].uv then
+              local uv = uv_interpolate_precalc(point, polygon, pre_baryc_coords)
+              local tex = sample_texture(uv[1], uv[2])
+              rgb = { rgb[1] * tex[1], rgb[2] * tex[2], rgb[3] * tex[3] }
+            end
 
             draw_pixel(rgb, { px, (render_height - 1) - py }) -- mirrored y axis
 

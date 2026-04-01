@@ -8,6 +8,7 @@ function load_obj_file(file_path)
   end
   local index_vertex = {}
   local index_vertex_normal = {}
+  local index_vertex_texcoord = {}
   for line in lines_iterator do
     local type = line:match "(%S+) .+"
     if type == "v" then
@@ -20,9 +21,19 @@ function load_obj_file(file_path)
       local x, y, z = line:match "vn (%S+) (%S+) (%S+)"
       local vertex_normal = { x = tonumber(x), y = tonumber(y), z = tonumber(z) }
       table.insert(index_vertex_normal, vertex_normal)
+    elseif type == "vt" then
+      -- texture coordinate
+      local u, v = line:match "vt (%S+) (%S+)"
+      table.insert(index_vertex_texcoord, { tonumber(u), tonumber(v) })
     elseif type == "f" then
-      -- face (it's specific for triangulated-mesh: exactly 3 vertices)
-      local v1, vn1, v2, vn2, v3, vn3 = line:match "f (%d+)//(%d+) (%d+)//(%d+) (%d+)//(%d+)"
+      -- face (triangulated-mesh: exactly 3 vertices)
+      -- try v/vt/vn format first, fall back to v//vn
+      local v1, vt1, vn1, v2, vt2, vn2, v3, vt3, vn3 =
+        line:match "f (%d+)/(%d+)/(%d+) (%d+)/(%d+)/(%d+) (%d+)/(%d+)/(%d+)"
+      if not v1 then
+        v1, vn1, v2, vn2, v3, vn3 =
+          line:match "f (%d+)//(%d+) (%d+)//(%d+) (%d+)//(%d+)"
+      end
       local triangle = { index_vertex[tonumber(v1)],
         index_vertex[tonumber(v2)], index_vertex[tonumber(v3)] }
       -- do vertex copy (no "shared vertex" problems with setting different "normals", collision)
@@ -37,6 +48,12 @@ function load_obj_file(file_path)
       triangle[1].normal = index_vertex_normal[tonumber(vn1)]
       triangle[2].normal = index_vertex_normal[tonumber(vn2)]
       triangle[3].normal = index_vertex_normal[tonumber(vn3)]
+      -- UV texture coordinates (optional)
+      if vt1 then
+        triangle[1].uv = index_vertex_texcoord[tonumber(vt1)]
+        triangle[2].uv = index_vertex_texcoord[tonumber(vt2)]
+        triangle[3].uv = index_vertex_texcoord[tonumber(vt3)]
+      end
       table.insert(triangles, triangle)
     end
   end
