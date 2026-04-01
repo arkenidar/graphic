@@ -156,6 +156,15 @@ function uv_interpolate_precalc(point, polygon, pre)
   local coords = barycentric_coordinates_cache_by_polygon(point, pre)
   local ra, rb, rc = coords.ra, coords.rb, coords.rc
   local a, b, c = polygon[1], polygon[2], polygon[3]
+  if a.inv_z then
+    -- perspective-correct: interpolate u/z and 1/z, then divide
+    local inv_z = ra * a.inv_z + rb * b.inv_z + rc * c.inv_z
+    return {
+      (ra * a.uv[1] * a.inv_z + rb * b.uv[1] * b.inv_z + rc * c.uv[1] * c.inv_z) / inv_z,
+      (ra * a.uv[2] * a.inv_z + rb * b.uv[2] * b.inv_z + rc * c.uv[2] * c.inv_z) / inv_z,
+    }
+  end
+  -- affine fallback (orthographic / no perspective)
   return {
     ra * a.uv[1] + rb * b.uv[1] + rc * c.uv[1],
     ra * a.uv[2] + rb * b.uv[2] + rc * c.uv[2],
