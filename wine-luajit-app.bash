@@ -1,1 +1,1 @@
-wine ms-windows-binaries/luajit.exe app.lua
+wine luajit/luajit.exe app.lua
