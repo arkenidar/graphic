@@ -121,19 +121,44 @@ end
 
 -- with pre-calculation per-polygon
 
+-- Barycentric coordinates express any point P inside triangle ABC as a weighted sum:
+--   P = ra*A + rb*B + rc*C,  with  ra+rb+rc = 1
+-- ra, rb, rc are the "weights" (0..1 each when inside).  They are also the relative
+-- areas of the three sub-triangles formed by P with each pair of vertices.
+-- We use them to interpolate any per-vertex value (depth z, color, UV) across the face.
+--
+-- This function pre-computes the parts that are constant for a given triangle so that
+-- the per-pixel barycentric computation is as cheap as possible.
 function barycentric_coords_precalculated_for_polygon(polygon)
   local a = polygon[1]
   local b = polygon[2]
   local c = polygon[3]
-  local pre_baryc_coords = {}
-  pre_baryc_coords.common = (b.y - c.y) * (a.x - c.x) + (c.x - b.x) * (a.y - c.y)
-  pre_baryc_coords.ax = b.y - c.y
-  pre_baryc_coords.ay = c.x - b.x
-  pre_baryc_coords.bx = c.y - a.y
-  pre_baryc_coords.by = a.x - c.x
-  pre_baryc_coords.cx = c.x
-  pre_baryc_coords.cy = c.y
-  return pre_baryc_coords
+  local pre = {}
+
+  -- "common" is the signed area of the whole triangle × 2 (in screen space).
+  -- It is the denominator used to normalise ra and rb to the [0,1] range.
+  -- Positive for CCW winding (which backface culling guarantees).
+  pre.common = (b.y - c.y) * (a.x - c.x) + (c.x - b.x) * (a.y - c.y)
+
+  -- Numerator coefficients for ra and rb.
+  -- ra(P) = (ax*(P.x-cx) + ay*(P.y-cy)) / common
+  -- rb(P) = (bx*(P.x-cx) + by*(P.y-cy)) / common
+  -- rc(P) = 1 - ra - rb
+  pre.ax = b.y - c.y
+  pre.ay = c.x - b.x
+  pre.bx = c.y - a.y
+  pre.by = a.x - c.x
+
+  -- Vertex C used as the reference point (subtracts out of every pixel computation).
+  pre.cx = c.x
+  pre.cy = c.y
+
+  -- Incremental rasterisation delta: as px increases by 1 along a scanline,
+  -- ra_num increases by ax and rb_num increases by bx.
+  -- rc_num = common - ra_num - rb_num, so it changes by -(ax+bx) per step.
+  pre.drc = -(pre.ax + pre.bx)
+
+  return pre
 end
 
 function barycentric_coordinates_cache_by_polygon(point, pre)

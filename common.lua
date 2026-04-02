@@ -382,6 +382,7 @@ end
 
 local pixel_point = { x = 0, y = 0 }  -- reused each pixel, avoids allocation
 local pixel_xy    = { 0, 0 }           -- reused for draw_pixel call
+local pixel_rgb   = { 0, 0, 0 }        -- reused for Gouraud color output, avoids allocation
 
 local render_width, render_height = 300, 300
 local depth_buffer = {}
@@ -464,35 +465,115 @@ function draw()
     y_min = math.max(math.floor(y_min), 0)
     y_max = math.min(math.floor(y_max), render_height)
 
-    local pre_baryc_coords = barycentric_coords_precalculated_for_polygon(polygon_iterated)
+    local pre = barycentric_coords_precalculated_for_polygon(polygon_iterated)
+
+    -- Skip degenerate triangles (zero area, would cause division by zero).
+    if pre.common == 0 then goto next_polygon end
+
+    -- Cache vertex data in locals — faster than repeated table indexing in the hot loop.
+    local v0, v1, v2       = polygon_iterated[1], polygon_iterated[2], polygon_iterated[3]
+    local v0z, v1z, v2z    = v0.z, v1.z, v2.z
+    local color_diffuse     = polygon_iterated.color_diffuse  -- flat shading (nil for Gouraud)
+    local has_uv            = v0.uv ~= nil
+
+    -- Gouraud per-vertex colors (only used when color_diffuse is nil).
+    local c0, c1, c2
+    if not color_diffuse then
+      c0, c1, c2 = v0.color, v1.color, v2.color
+    end
+
+    -- Per-vertex UV and inv_z for perspective-correct texture mapping.
+    local u0, u1, u2, t0, t1, t2, iz0, iz1, iz2
+    if has_uv then
+      u0, u1, u2 = v0.uv[1], v1.uv[1], v2.uv[1]
+      t0, t1, t2 = v0.uv[2], v1.uv[2], v2.uv[2]
+      iz0, iz1, iz2 = v0.inv_z, v1.inv_z, v2.inv_z
+    end
+
+    -- Incremental (scanline) rasterisation.
+    --
+    -- Key idea: barycentric coordinates are LINEAR functions of (px, py).
+    -- ra(px,py) = (ax*(px-cx) + ay*(py-cy)) / common
+    -- rb(px,py) = (bx*(px-cx) + by*(py-cy)) / common
+    -- rc = 1 - ra - rb
+    --
+    -- Along a scanline (fixed py, px increasing by 1), ra_num increases by ax each step
+    -- and rb_num increases by bx.  So we seed at x_min then just ADD per step — no
+    -- multiplications inside the pixel loop.
+    --
+    -- We also DEFER the division by common until we know the pixel is inside the triangle,
+    -- because most pixels in the bounding box are outside.  The sign of the numerators
+    -- (assuming common > 0 from CCW winding) is enough for the inside test.
+
+    local inv_common = 1.0 / pre.common
+    local ax, bx, drc = pre.ax, pre.bx, pre.drc
 
     for py = y_min, y_max do
+      local dy = py - pre.cy
+      -- Seed the numerators at the left edge of this scanline.
+      local ra_num = ax * (x_min - pre.cx) + pre.ay * dy
+      local rb_num = bx * (x_min - pre.cx) + pre.by * dy
+      local rc_num = pre.common - ra_num - rb_num
+
+      local depth_line = depth_buffer[py]
+      local screen_py  = (render_height - 1) - py   -- y-axis flip for display
+
       for px = x_min, x_max do
-        pixel_point.x = px
-        pixel_point.y = py
+        -- Inside test: all three barycentric numerators must be non-negative
+        -- (equivalent to the point being on the correct side of all three edges).
+        if ra_num >= 0 and rb_num >= 0 and rc_num >= 0 then
 
-        if inside_polygon(polygon_iterated, pixel_point) then
-          local rgb = polygon_iterated.color_diffuse
-          local z = position_interpolate_precalc(pixel_point, polygon_iterated, pre_baryc_coords).z
+          -- Now divide once to get the normalised weights.
+          local ra = ra_num * inv_common
+          local rb = rb_num * inv_common
+          local rc = rc_num * inv_common  -- == 1 - ra - rb
 
-          if z > depth_buffer[py][px] then
-            if not rgb then rgb = color_interpolate_precalc(pixel_point, polygon_iterated, pre_baryc_coords) end
+          -- Depth interpolation (replaces position_interpolate_precalc).
+          local z = ra*v0z + rb*v1z + rc*v2z
 
-            -- texture mapping: blend diffuse texture with Gouraud color
-            if polygon_iterated[1].uv then
-              local uv = uv_interpolate_precalc(pixel_point, polygon_iterated, pre_baryc_coords)
-              local tex = sample_texture(uv[1], uv[2])
-              rgb = { rgb[1] * tex[1], rgb[2] * tex[2], rgb[3] * tex[3] }
+          if z > depth_line[px] then
+            local rgb
+
+            if color_diffuse then
+              rgb = color_diffuse           -- flat shading: single color for whole face
+            else
+              -- Gouraud shading: interpolate per-vertex colors (replaces color_interpolate_precalc).
+              -- Each channel is a weighted blend: color = ra*c0 + rb*c1 + rc*c2.
+              pixel_rgb[1] = ra*c0[1] + rb*c1[1] + rc*c2[1]
+              pixel_rgb[2] = ra*c0[2] + rb*c1[2] + rc*c2[2]
+              pixel_rgb[3] = ra*c0[3] + rb*c1[3] + rc*c2[3]
+              rgb = pixel_rgb
+            end
+
+            -- Texture mapping: blend the texel with the Gouraud color.
+            if has_uv then
+              -- Perspective-correct UV: interpolate u/z and 1/z, then divide.
+              -- This prevents the "swimming" distortion of simple affine UV mapping.
+              local inv_z = ra*iz0 + rb*iz1 + rc*iz2
+              local u = (ra*u0*iz0 + rb*u1*iz1 + rc*u2*iz2) / inv_z
+              local t = (ra*t0*iz0 + rb*t1*iz1 + rc*t2*iz2) / inv_z
+              local tex = sample_texture(u, t)
+              pixel_rgb[1] = rgb[1] * tex[1]
+              pixel_rgb[2] = rgb[2] * tex[2]
+              pixel_rgb[3] = rgb[3] * tex[3]
+              rgb = pixel_rgb
             end
 
             pixel_xy[1] = px
-            pixel_xy[2] = (render_height - 1) - py
-            draw_pixel(rgb, pixel_xy)       -- mirrored y axis
+            pixel_xy[2] = screen_py
+            draw_pixel(rgb, pixel_xy)
 
-            depth_buffer[py][px] = z
+            depth_line[px] = z
           end
         end
+
+        -- Advance barycentric numerators by one pixel (3 additions, no multiplications).
+        ra_num = ra_num + ax
+        rb_num = rb_num + bx
+        rc_num = rc_num + drc
       end
     end
+
+    ::next_polygon::
   end  -- front_facing loop
 end
