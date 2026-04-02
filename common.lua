@@ -366,9 +366,16 @@ function shading_smooth_preset1(triangle)
   end
 end
 
-function draw()
-  local render_width, render_height = 300, 300
+local render_width, render_height = 300, 300
+local depth_buffer = {}
+do
+  for py = 0, render_height do
+    depth_buffer[py] = {}
+    for px = 0, render_width do depth_buffer[py][px] = -math.huge end
+  end
+end
 
+function draw()
   for i, polygon_iterated in ipairs(polygons_to_render) do
     shading_smooth_preset1(polygon_iterated)
   end
@@ -377,14 +384,10 @@ function draw()
     perspective(polygon_iterated)
   end
 
-  -- z-buffer
-  local depth_buffer = {}
+  -- z-buffer reset
   for py = 0, render_height do
-    local line = {}
-    for px = 0, render_width do
-      table.insert(line, px, -math.huge) -- reset value
-    end
-    table.insert(depth_buffer, py, line)
+    local line = depth_buffer[py]
+    for px = 0, render_width do line[px] = -math.huge end
   end
 
   --[[

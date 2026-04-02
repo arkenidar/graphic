@@ -84,14 +84,24 @@ function surface_draw_rect(rgb, xywh)
     SDL_FillRect(window_surface, rect_from_xywh(xywh), SDL_MapRGB(window_surface.format, rgb[1], rgb[2], rgb[3]))
 end
 
---draw_pixel = surface_draw_rect
+local ws_ptr   -- uint8_t* to window_surface pixels
+local ws_pitch -- bytes per row
+local ws_bpp   -- bytes per pixel
+
 function draw_pixel(rgb, xy)
-    local rgb255 = {
-        rgb[1] * 255,
-        rgb[2] * 255,
-        rgb[3] * 255
-    }
-    surface_draw_rect(rgb255, xy)
+    local px, py = xy[1], xy[2]
+    local packed = SDL.SDL_MapRGB(window_surface.format,
+        math.min(255, math.floor(rgb[1] * 255)),
+        math.min(255, math.floor(rgb[2] * 255)),
+        math.min(255, math.floor(rgb[3] * 255)))
+    local offset = py * ws_pitch + px * ws_bpp
+    if ws_bpp == 4 then
+        ffi.cast("uint32_t*", ws_ptr + offset)[0] = packed
+    else  -- 3 BPP
+        ws_ptr[offset]     = bit.band(packed, 0xff)
+        ws_ptr[offset + 1] = bit.band(bit.rshift(packed, 8), 0xff)
+        ws_ptr[offset + 2] = bit.band(bit.rshift(packed, 16), 0xff)
+    end
 end
 
 require("common")
@@ -205,6 +215,9 @@ end
 local time_ticks = SDL_GetTicks()
 local event = ffi.new("SDL_Event")
 local looping = true
+local frame_count = 0
+local fps_timer = SDL_GetTicks()
+local start_ticks = SDL_GetTicks()
 while looping do
     while SDL_PollEvent(event) ~= 0 do
         if event.type == SDL_QUIT or (event.type == SDL_KEYDOWN and event.key.keysym.sym == SDLK_ESCAPE) then
@@ -222,11 +235,25 @@ while looping do
     --SDL_FillRect(window_surface,nil,0)
     surface_draw_rect({0, 0, 0})
 
+    ws_ptr   = ffi.cast("uint8_t*", window_surface.pixels)
+    ws_pitch = window_surface.pitch
+    ws_bpp   = window_surface.format.BytesPerPixel
+
     ---surface_draw_rect({0,255,0}, {50,50}) -- test pixel draw
 
     draw()
 
     SDL_UpdateWindowSurface(window)
+
+    frame_count = frame_count + 1
+    local now = SDL_GetTicks()
+    if now - fps_timer >= 1000 then
+        io.write(string.format("FPS: %d\n", frame_count))
+        io.flush()
+        frame_count = 0
+        fps_timer = now
+    end
+    if now - start_ticks >= 5000 then looping = false end  -- auto-exit after 5s
 end
 
 SDL_DestroyWindow(window)

@@ -34,6 +34,10 @@ function love.load()
   love.window.setMode(300, 300)
 
   tex_imagedata = love.image.newImageData("assets/checker.bmp")
+
+  pixel_buffer = love.image.newImageData(300, 300)
+  pixel_image  = love.graphics.newImage(pixel_buffer)
+  pixel_image:setFilter("nearest", "nearest")
 end
 
 require('common')
@@ -47,13 +51,14 @@ function love.update(dt)
 end
 
 function draw_pixel(rgb, xy)
-  love.graphics.setColor(rgb[1], rgb[2], rgb[3], 1)
-
-  -- draw pixel
   local px, py = xy[1], xy[2]
-  love.graphics.rectangle("fill", px, py, 1, 1)
+  if px < 0 or px >= 300 or py < 0 or py >= 300 then return end
+  pixel_buffer:setPixel(px, py, rgb[1], rgb[2], rgb[3], 1)
 end
 
 function love.draw()
+  pixel_buffer:mapPixel(function() return 0, 0, 0, 1 end)
   draw()
+  pixel_image:replacePixels(pixel_buffer)
+  love.graphics.draw(pixel_image, 0, 0)
 end
