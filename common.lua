@@ -366,6 +366,23 @@ function shading_smooth_preset1(triangle)
   end
 end
 
+local function halfplane(px, p1, p2)
+  return ((p2.x - p1.x) * (px.y - p1.y) - (p2.y - p1.y) * (px.x - p1.x)) < 0
+end
+
+local function inside_polygon(polygon, point)
+  local last = polygon[#polygon]
+  for i = 1, #polygon do
+    local current = polygon[i]
+    if halfplane(point, last, current) then return false end
+    last = current
+  end
+  return true
+end
+
+local pixel_point = { x = 0, y = 0 }  -- reused each pixel, avoids allocation
+local pixel_xy    = { 0, 0 }           -- reused for draw_pixel call
+
 local render_width, render_height = 300, 300
 local depth_buffer = {}
 do
@@ -400,30 +417,6 @@ function draw()
         check = in_convex_polygon(px, py, polygon_iterated)
         --]]
 
-  function inside_polygon(polygon, point)
-    local last = polygon[#polygon]
-    for i = 1, #polygon do
-      local current = polygon[i]
-
-      --[[
-      if side(point, last, current) > 0 then
-        return false
-      end
-      --]]
-
-      function halfplane(px, p1, p2)
-        return ((p2.x - p1.x) * (px.y - p1.y) - (p2.y - p1.y) * (px.x - p1.x)) < 0
-      end
-
-      if halfplane(point, last, current) then
-        return false
-      end
-
-      last = current
-    end
-    return true
-  end
-
   -- testing: function color_interpolate(point, polygon)
   --polygons_to_render = {}
 
@@ -449,79 +442,37 @@ function draw()
       if point.y > y_max then y_max = point.y end
     end
 
-    x_min = math.max(x_min, 0)
-    x_max = math.min(x_max, render_width)
-
-    y_min = math.max(y_min, 0)
-    y_max = math.min(y_max, render_height)
-
-    x_min = math.floor(x_min)
-    x_max = math.floor(x_max)
-    y_min = math.floor(y_min)
-    y_max = math.floor(y_max)
+    x_min = math.max(math.floor(x_min), 0)
+    x_max = math.min(math.floor(x_max), render_width)
+    y_min = math.max(math.floor(y_min), 0)
+    y_max = math.min(math.floor(y_max), render_height)
 
     local pre_baryc_coords = barycentric_coords_precalculated_for_polygon(polygon_iterated)
 
     for py = y_min, y_max do
       for px = x_min, x_max do
-        local point = { x = px, y = py }
-        local polygon = polygon_iterated
+        pixel_point.x = px
+        pixel_point.y = py
 
-        local function check_polygon()
-          return inside_polygon(polygon, point)
-        end
-
-        local function check_wireframe()
-          local ra, rb, rc = barycentric_coordinates(point, polygon)
-          function quasi_zero(number) return math.abs(number) <= 0.05 end
-
-          return quasi_zero(ra) or quasi_zero(rb) or quasi_zero(rc)
-        end
-
-        if check_polygon() then
+        if inside_polygon(polygon_iterated, pixel_point) then
           local rgb = polygon_iterated.color_diffuse
+          local z = position_interpolate_precalc(pixel_point, polygon_iterated, pre_baryc_coords).z
 
-          local function depth(px, py, polygon_iterated)
-            if not polygon_iterated.normal then -- caching, it's cached
-              polygon_iterated.normal = polygon_normal(polygon_iterated)
-            end
-
-            local x, y, z, x1, y1, z1, a, b, c
-            local normal_vector = polygon_iterated.normal -- cached
-            x = px
-            y = py
-            x1 = polygon_iterated[1].x
-            y1 = polygon_iterated[1].y
-            z1 = polygon_iterated[1].z
-            a = normal_vector.x
-            b = normal_vector.y
-            c = normal_vector.z
-
-            z = -(a * x + b * y - (a * x1 + b * y1 + c * z1)) / c
-
-            return z
-          end
-
-          local point = { x = px, y = py }
-
-          ---local z = depth(px,py, polygon_iterated) -- NOT precalc
-          local z = position_interpolate_precalc(point, polygon, pre_baryc_coords).z
-
-          local current_depth = depth_buffer[py][px]
-          if z > current_depth then
-            ---if not rgb then rgb = color_interpolate({x=px, y=py}, polygon_iterated) end -- NOT precalc
-            if not rgb then rgb = color_interpolate_precalc(point, polygon, pre_baryc_coords) end
+          if z > depth_buffer[py][px] then
+            if not rgb then rgb = color_interpolate_precalc(pixel_point, polygon_iterated, pre_baryc_coords) end
 
             -- texture mapping: blend diffuse texture with Gouraud color
-            if polygon[1].uv then
-              local uv = uv_interpolate_precalc(point, polygon, pre_baryc_coords)
+            if polygon_iterated[1].uv then
+              local uv = uv_interpolate_precalc(pixel_point, polygon_iterated, pre_baryc_coords)
               local tex = sample_texture(uv[1], uv[2])
               rgb = { rgb[1] * tex[1], rgb[2] * tex[2], rgb[3] * tex[3] }
             end
 
-            draw_pixel(rgb, { px, (render_height - 1) - py }) -- mirrored y axis
+            pixel_xy[1] = px
+            pixel_xy[2] = (render_height - 1) - py
+            draw_pixel(rgb, pixel_xy)       -- mirrored y axis
 
-            depth_buffer[py][px] = z                          -- successive depth
+            depth_buffer[py][px] = z
           end
         end
       end
