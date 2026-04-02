@@ -220,7 +220,7 @@ function update(dt)
   ---polygons_transformed = triangles_original
 
   polygons_transformed = polygons_transform(obj_cube, (degrees + 180) % 360)
-  polygons_transformed = polygons_transform(obj_floor, 0)
+  ---polygons_transformed = polygons_transform(obj_floor, 0)
   ---polygons_transformed = polygons_transform(obj_uv_plane, 0)
 
   local s = 50
@@ -392,13 +392,28 @@ do
   end
 end
 
+local front_facing = {}  -- reused each frame
+
 function draw()
+  -- backface cull in 3D before shading/perspective
+  -- nz = z-component of face normal; >= 0 means front-facing (camera along -Z)
+  local n = 0
   for i, polygon_iterated in ipairs(polygons_to_render) do
-    shading_smooth_preset1(polygon_iterated)
+    local v0, v1, v2 = polygon_iterated[1], polygon_iterated[2], polygon_iterated[3]
+    local nz = (v1.x - v0.x) * (v2.y - v0.y) - (v1.y - v0.y) * (v2.x - v0.x)
+    if nz >= 0 then
+      n = n + 1
+      front_facing[n] = polygon_iterated
+    end
+  end
+  for i = n + 1, #front_facing do front_facing[i] = nil end
+
+  for i = 1, n do
+    shading_smooth_preset1(front_facing[i])
   end
 
-  for i, polygon_iterated in ipairs(polygons_to_render) do
-    perspective(polygon_iterated)
+  for i = 1, n do
+    perspective(front_facing[i])
   end
 
   -- z-buffer reset
@@ -430,7 +445,9 @@ function draw()
   )
   --]]
 
-  for i, polygon_iterated in ipairs(polygons_to_render) do
+  for i = 1, n do
+    local polygon_iterated = front_facing[i]
+
     local x_min = math.huge
     local x_max = -math.huge
     local y_min = math.huge
@@ -477,5 +494,5 @@ function draw()
         end
       end
     end
-  end
+  end  -- front_facing loop
 end
