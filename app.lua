@@ -1,4 +1,4 @@
--- app.lua is for SDL2 ... (https://libsdl.org/)
+-- app.lua is for SDL3 ... (https://libsdl.org/)
 -- ... via LuaJIT's FFI (https://luajit.org/)
 
 ---require('common-preceding')
@@ -14,18 +14,8 @@ end
 ---require("mobdebug").start()
 
 local ffi = require("ffi")
---[[
-https://gist.github.com/creationix/1213280/a97d7051decb2f1d3e8844186bbff49b6442700a
--- Parse the C API header
--- It's generated with:
---
---     echo '#include <SDL.h>' > stub.c
---     gcc -I /usr/include/SDL -E stub.c | grep -v '^#' > ffi_SDL.h
---]]
+-- ffi_defs.h: minimal SDL3 declarations, handwritten for LuaJIT compatibility
 ffi.cdef(io.open("ffi_defs.h", "r"):read("*a"))
-
---- local SDL = ffi.load("SDL2")
---- local SDL_image = ffi.load("SDL2_image")
 
 local function ffi_load_any(...)
     local last_error
@@ -40,7 +30,7 @@ local function ffi_load_any(...)
     error(last_error)
 end
 
-local SDL = ffi_load_any("SDL2", "libSDL2-2.0.so.0", "libSDL2.so")
+local SDL = ffi_load_any("SDL3", "libSDL3.so.0", "libSDL3.so")
 
 _G =
     setmetatable(
@@ -55,7 +45,7 @@ _G =
 )
 
 SDL_Init(0)
-local window = SDL_CreateWindow("[arkenidar/graphic] luajit app.lua", 50, 50, 300, 300, 0)
+local window = SDL_CreateWindow("[arkenidar/graphic] luajit app.lua", 300, 300, 0)
 local window_surface = SDL_GetWindowSurface(window)
 
 function rect_from_xywh(xywh)
@@ -71,16 +61,18 @@ function rect_from_xywh(xywh)
 end
 
 function surface_draw_rect(rgb, xywh)
-    SDL_FillRect(window_surface, rect_from_xywh(xywh), SDL_MapRGB(window_surface.format, rgb[1], rgb[2], rgb[3]))
+    local fmt = SDL_GetPixelFormatDetails(window_surface.format)
+    SDL_FillSurfaceRect(window_surface, rect_from_xywh(xywh), SDL_MapRGB(fmt, nil, rgb[1], rgb[2], rgb[3]))
 end
 
 local ws_ptr   -- uint8_t* to window_surface pixels
 local ws_pitch -- bytes per row
 local ws_bpp   -- bytes per pixel
+local ws_fmt   -- SDL_PixelFormatDetails*, pre-fetched per frame
 
 function draw_pixel(rgb, xy)
     local px, py = xy[1], xy[2]
-    local packed = SDL.SDL_MapRGB(window_surface.format,
+    local packed = SDL.SDL_MapRGB(ws_fmt, nil,
         math.min(255, math.floor(rgb[1] * 255)),
         math.min(255, math.floor(rgb[2] * 255)),
         math.min(255, math.floor(rgb[3] * 255)))
@@ -151,8 +143,9 @@ end
 
 create_checker_bmp("assets/checker.bmp", 128, 8)
 
-local tex_surface = SDL_LoadBMP_RW(SDL_RWFromFile("assets/checker.bmp", "rb"), 1)
+local tex_surface = SDL_LoadBMP_IO(SDL_IOFromFile("assets/checker.bmp", "rb"), 1)
 assert(tex_surface ~= nil, "Failed to load assets/checker.bmp")
+local tex_fmt = SDL.SDL_GetPixelFormatDetails(tex_surface.format)
 
 function sample_texture(u, v)
     -- wrap UV into [0, 1)
@@ -161,7 +154,7 @@ function sample_texture(u, v)
     local px = math.max(0, math.min(tex_surface.w - 1, math.floor(u * tex_surface.w)))
     local py = math.max(0, math.min(tex_surface.h - 1, math.floor(v * tex_surface.h)))
     local pixels = ffi.cast("uint8_t*", tex_surface.pixels)
-    local bpp = tex_surface.format.BytesPerPixel
+    local bpp = tex_fmt.bytes_per_pixel
     local offset = py * tex_surface.pitch + px * bpp
     -- pack bytes little-endian into uint32 for SDL_GetRGB
     local pixel = 0
@@ -171,7 +164,7 @@ function sample_texture(u, v)
     local r = ffi.new("Uint8[1]")
     local g = ffi.new("Uint8[1]")
     local b = ffi.new("Uint8[1]")
-    SDL.SDL_GetRGB(pixel, tex_surface.format, r, g, b)
+    SDL.SDL_GetRGB(pixel, tex_fmt, nil, r, g, b)
     return { r[0] / 255, g[0] / 255, b[0] / 255 }
 end
 
@@ -202,21 +195,22 @@ function draw()
 end
 
 --]]
-local time_ticks = SDL_GetTicks()
+local time_ticks = tonumber(SDL_GetTicks())
 local event = ffi.new("SDL_Event")
 local looping = true
 local frame_count = 0
-local fps_timer = SDL_GetTicks()
+local fps_timer = tonumber(SDL_GetTicks())
 while looping do
     while SDL_PollEvent(event) ~= 0 do
-        if event.type == SDL_QUIT or (event.type == SDL_KEYDOWN and event.key.keysym.sym == SDLK_ESCAPE) then
+        if event.type == SDL_EVENT_QUIT or (event.type == SDL_EVENT_KEY_DOWN and event.key.key == SDLK_ESCAPE) then
             looping = false
         end
     end
 
     local dt  -- elapsed time in fractions of seconds
-    delta_ticks = SDL_GetTicks() - time_ticks
-    time_ticks = SDL_GetTicks()
+    local now_ticks = tonumber(SDL_GetTicks())
+    delta_ticks = now_ticks - time_ticks
+    time_ticks = now_ticks
     dt = delta_ticks / 1000 -- milliseconds to seconds
 
     update(dt)
@@ -226,7 +220,8 @@ while looping do
 
     ws_ptr   = ffi.cast("uint8_t*", window_surface.pixels)
     ws_pitch = window_surface.pitch
-    ws_bpp   = window_surface.format.BytesPerPixel
+    ws_fmt   = SDL.SDL_GetPixelFormatDetails(window_surface.format)
+    ws_bpp   = ws_fmt.bytes_per_pixel
 
     ---surface_draw_rect({0,255,0}, {50,50}) -- test pixel draw
 
@@ -235,7 +230,7 @@ while looping do
     SDL_UpdateWindowSurface(window)
 
     frame_count = frame_count + 1
-    local now = SDL_GetTicks()
+    local now = tonumber(SDL_GetTicks())
     if now - fps_timer >= 1000 then
         io.write(string.format("FPS: %d\n", frame_count))
         io.flush()
