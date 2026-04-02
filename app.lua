@@ -217,7 +217,6 @@ local event = ffi.new("SDL_Event")
 local looping = true
 local frame_count = 0
 local fps_timer = SDL_GetTicks()
-local start_ticks = SDL_GetTicks()
 while looping do
     while SDL_PollEvent(event) ~= 0 do
         if event.type == SDL_QUIT or (event.type == SDL_KEYDOWN and event.key.keysym.sym == SDLK_ESCAPE) then
@@ -253,7 +252,6 @@ while looping do
         frame_count = 0
         fps_timer = now
     end
-    if now - start_ticks >= 5000 then looping = false end  -- auto-exit after 5s
 end
 
 SDL_DestroyWindow(window)
