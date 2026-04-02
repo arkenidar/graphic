@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>arkenidar/graphic — Software Renderer Explained</title>
+  <style>
+    :root {
+      --bg:      #0f1117;
+      --panel:   #1a1d27;
+      --border:  #2e3148;
+      --accent:  #7c9ef8;
+      --green:   #50fa7b;
+      --yellow:  #f1fa8c;
+      --orange:  #ffb86c;
+      --pink:    #ff79c6;
+      --text:    #cdd6f4;
+      --muted:   #6272a4;
+      --code-bg: #12141f;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      padding: 0 1rem 4rem;
+    }
+    a { color: var(--accent); }
+
+    /* ── Layout ── */
+    .page { max-width: 860px; margin: 0 auto; }
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 2.5rem 0 1.5rem;
+      margin-bottom: 2.5rem;
+    }
+    header h1 { font-size: 2rem; color: var(--accent); letter-spacing: -0.5px; }
+    header p  { color: var(--muted); margin-top: 0.4rem; }
+
+    h2 {
+      font-size: 1.35rem;
+      color: var(--orange);
+      margin: 2.8rem 0 0.9rem;
+      padding-bottom: 0.3rem;
+      border-bottom: 1px solid var(--border);
+    }
+    h3 { font-size: 1.05rem; color: var(--yellow); margin: 1.6rem 0 0.5rem; }
+    p  { margin-bottom: 0.8rem; }
+    ul, ol { margin: 0.5rem 0 0.8rem 1.4rem; }
+    li { margin-bottom: 0.3rem; }
+
+    /* ── Code ── */
+    code {
+      font-family: 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 0.88em;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.1em 0.35em;
+      color: var(--green);
+    }
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.1rem 1.3rem;
+      overflow-x: auto;
+      margin: 0.8rem 0 1.2rem;
+      font-family: 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 0.87em;
+      line-height: 1.6;
+    }
+    pre code { background: none; border: none; padding: 0; font-size: inherit; color: var(--text); }
+    .kw  { color: var(--pink); }
+    .fn  { color: var(--accent); }
+    .cm  { color: var(--muted); font-style: italic; }
+    .nu  { color: var(--orange); }
+    .st  { color: var(--yellow); }
+
+    /* ── Formula blocks ── */
+    .formula {
+      background: var(--panel);
+      border-left: 3px solid var(--accent);
+      border-radius: 6px;
+      padding: 0.8rem 1.2rem;
+      margin: 0.8rem 0 1.2rem;
+      font-family: 'Fira Code', 'Cascadia Code', Georgia, serif;
+      font-size: 0.95em;
+      line-height: 2;
+      overflow-x: auto;
+    }
+    .formula .label {
+      display: block;
+      font-size: 0.75em;
+      color: var(--muted);
+      font-family: system-ui;
+      margin-bottom: 0.2rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── Pipeline diagram ── */
+    .pipeline {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0;
+      margin: 1rem 0 1.5rem;
+    }
+    .stage {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      padding: 0.55rem 0.9rem;
+      font-size: 0.85rem;
+      position: relative;
+    }
+    .stage:not(:last-child)::after {
+      content: '▶';
+      position: absolute;
+      right: -14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-size: 0.75rem;
+      z-index: 1;
+    }
+    .stage .title { color: var(--accent); font-weight: 600; }
+    .stage .sub   { color: var(--muted); font-size: 0.78rem; }
+
+    /* ── Info box ── */
+    .info {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.2rem;
+      margin: 1rem 0;
+      font-size: 0.92rem;
+    }
+    .info strong { color: var(--yellow); }
+
+    /* ── File tag ── */
+    .file {
+      display: inline-block;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.05em 0.5em;
+      font-family: monospace;
+      font-size: 0.83em;
+      color: var(--muted);
+      margin-left: 0.3em;
+    }
+
+    /* ── Perf table ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.8rem 0 1.2rem;
+      font-size: 0.9rem;
+    }
+    th { background: var(--panel); color: var(--orange); padding: 0.5rem 0.8rem; text-align: left; border-bottom: 2px solid var(--border); }
+    td { padding: 0.45rem 0.8rem; border-bottom: 1px solid var(--border); }
+    tr:last-child td { border-bottom: none; }
+    .good { color: var(--green); }
+    .bad  { color: #ff5555; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <h1>arkenidar / graphic</h1>
+  <p>A from-scratch software 3-D renderer written in Lua — no GPU, no graphics library math, just pixels.</p>
+  <p style="margin-top:0.6rem">
+    Backends: <strong>Love2D</strong> <span class="file">main.lua</span> &amp;
+    <strong>LuaJIT + SDL2</strong> <span class="file">app.lua</span> ·
+    Shared core: <span class="file">common.lua</span> <span class="file">algebra.lua</span>
+  </p>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2>1 · Rendering Pipeline Overview</h2>
+
+<p>Every frame, the renderer executes these stages in order:</p>
+
+<div class="pipeline">
+  <div class="stage"><div class="title">Transform</div><div class="sub">rotate · translate</div></div>
+  <div class="stage"><div class="title">Backface Cull</div><div class="sub">discard hidden faces</div></div>
+  <div class="stage"><div class="title">Shading</div><div class="sub">Gouraud per-vertex</div></div>
+  <div class="stage"><div class="title">Perspective</div><div class="sub">3-D → 2-D screen</div></div>
+  <div class="stage"><div class="title">Rasterise</div><div class="sub">fill pixels + z-test</div></div>
+  <div class="stage"><div class="title">Display</div><div class="sub">flush pixel buffer</div></div>
+</div>
+
+<p>
+  The renderer is <em>entirely software</em>: every pixel is computed in Lua and written
+  to an in-memory buffer (<code>ImageData</code> for Love2D; direct pointer write to
+  <code>SDL_Surface.pixels</code> for LuaJIT). The buffer is uploaded to the window
+  once per frame in a single call.
+</p>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2>2 · 3-D Transformations <span class="file">common.lua</span></h2>
+
+<h3>Translation</h3>
+<p>Moving a point by an offset — the simplest transform:</p>
+<div class="formula">
+  <span class="label">translation</span>
+  P′ = ( P.x + dx,  P.y + dy,  P.z + dz )
+</div>
+
+<h3>Rotation around the Y axis</h3>
+<p>
+  Rotating a point in the XZ plane (turning left/right) uses the 2-D rotation formula
+  applied to the X and Z components while Y stays fixed:
+</p>
+<div class="formula">
+  <span class="label">Y-axis rotation by angle θ</span>
+  x′ =  cos(θ) · x  −  sin(θ) · z<br>
+  z′ =  cos(θ) · z  +  sin(θ) · x<br>
+  y′ =  y  <span style="color:var(--muted)">(unchanged)</span>
+</div>
+<p>
+  Intuition: imagine the unit circle in the XZ plane.
+  A point at angle φ from the X-axis moves to angle φ+θ after rotation.
+  cos/sin give the new X and Z components of that rotated direction.
+</p>
+
+<pre><code><span class="kw">function</span> <span class="fn">point_rotate_y</span>(point, radiants)
+  <span class="kw">return</span> <span class="fn">point_rotate_axes</span>(<span class="st">'xz'</span>, point, radiants)
+<span class="kw">end</span>
+
+<span class="cm">-- Generic: rotate two named axes of a point by angle radiants</span>
+<span class="kw">function</span> <span class="fn">point_rotate_axes</span>(axes, point_in, radiants)
+  <span class="kw">local</span> one, two = axes[1], axes[2]
+  point_out[one] = math.cos(radiants)*point_in[one] - math.sin(radiants)*point_in[two]
+  point_out[two] = math.cos(radiants)*point_in[two] + math.sin(radiants)*point_in[one]
+<span class="kw">end</span></code></pre>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2>3 · Perspective Projection <span class="file">common.lua · perspective()</span></h2>
+
+<p>
+  Real eyes (and cameras) see distant objects as smaller.
+  Perspective projection maps a 3-D point to a 2-D screen position
+  by dividing by depth (−z, because the scene is in front of the camera at negative Z).
+</p>
+
+<div class="formula">
+  <span class="label">perspective projection (pinhole camera)</span>
+  x<sub>screen</sub> = (x − cx) · focal / (−z)  +  cx<br>
+  y<sub>screen</sub> = (y − cy) · focal / (−z)  +  cy
+</div>
+
+<p>
+  <strong>focal</strong> (= 200) is the focal length: it controls the field of view.
+  Larger focal → narrower FOV, more telephoto-like.
+  <strong>(cx, cy)</strong> (= 150, 150) is the screen centre, so objects on the optical
+  axis project to the middle of the window.
+</p>
+
+<div class="info">
+  <strong>inv_z</strong>: the renderer pre-computes <code>inv_z = 1 / (−z)</code> per vertex
+  and stores it. This same value is later reused for perspective-correct UV interpolation —
+  so the division is paid only once.
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2>4 · Backface Culling <span class="file">common.lua · draw()</span></h2>
+
+<p>
+  A closed mesh (like a head) always has faces pointing <em>toward</em> the camera
+  and faces pointing <em>away</em>. The away-faces are invisible and can be skipped entirely —
+  typically ~50% of all triangles.
+</p>
+
+<h3>The test: z-component of the face normal</h3>
+<p>
+  In world space the camera is at the origin looking along −Z.
+  A face is front-facing if its normal has a positive Z component (pointing toward +Z, toward camera).
+  The Z component of the cross product of two edges gives exactly this:
+</p>
+
+<div class="formula">
+  <span class="label">face normal z-component (2D cross product of edges in XY)</span>
+  nz = (v1.x − v0.x)(v2.y − v0.y) − (v1.y − v0.y)(v2.x − v0.x)
+  <br><br>
+  front-facing  ⟺  nz ≥ 0
+</div>
+
+<p>
+  The <code>≥ 0</code> (not <code>&gt; 0</code>) is intentional: edge-on faces (nz = 0)
+  like a horizontal floor plane are included rather than silently dropped.
+  Backface culling runs <em>before</em> shading and perspective, so culled triangles pay
+  no further cost at all.
+</p>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2>5 · Lighting &amp; Shading <span class="file">common.lua · shading_smooth_preset1()</span></h2>
+
+<h3>Lambertian (diffuse) reflection</h3>
+<p>
+  A surface lit by a directional light reflects more light the more directly
+  it faces the light. This is captured by the dot product of the surface normal
+  and the direction toward the light:
+</p>
+
+<div class="formula">
+  <span class="label">Lambert's cosine law</span>
+  intensity = max( 0,  N̂ · L̂ )
+</div>
+
+<p>
+  <strong>N̂</strong> is the unit surface normal. <strong>L̂</strong> is the unit vector
+  pointing <em>toward</em> the light.
+  The dot product equals cos(θ) where θ is the angle between them.
+  Clamping to 0 means the face receives no negative light when it points away.
+</p>
+
+<h3>Ambient light</h3>
+<p>
+  Real scenes have indirect light bouncing from all surfaces.
+  We fake this with a constant ambient term added to every surface:
+</p>
+<div class="formula">
+  <span class="label">final vertex color</span>
+  color = clamp( Σ<sub>lights</sub>(max(0, N̂·L̂) · surface_color)  +  ambient )
+</div>
+
+<h3>Gouraud shading</h3>
+<p>
+  Instead of computing lighting once per triangle (flat shading), Gouraud shading
+  computes it <em>per vertex</em> using the vertex's own normal, then smoothly
+  <em>interpolates</em> the resulting colors across the face during rasterisation.
+  This gives smooth curvature on coarse meshes at low cost.
+</p>
+
+<div class="info">
+  The renderer uses <strong>3 lights</strong> simultaneously (top-left-back, right-front,
+  top-down) plus ambient at intensity 0.4, all accumulated per vertex.
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2>6 · Z-Buffer Depth Testing <span class="file">common.lua · depth_buffer</span></h2>
+
+<p>
+  When two triangles overlap on screen, the closer one should win.
+  The z-buffer stores the <em>depth</em> of the closest fragment seen so far
+  for each pixel, and a new fragment is drawn only if it is closer (higher z,
+  since the scene uses negative Z for depth):
+</p>
+
+<div class="formula">
+  <span class="label">depth test</span>
+  draw pixel  ⟺  z<sub>new</sub>  &gt;  depth_buffer[py][px]
+</div>
+
+<p>
+  The buffer is initialised to <code>−∞</code> each frame, so the very first
+  fragment at any pixel always wins. After drawing, the buffer is updated with
+  the new depth.
+  The buffer is allocated once at module scope and reset with a fill loop —
+  avoiding the 90 000 table-slot re-allocation that would otherwise occur each frame.
+</p>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2>7 · Barycentric Coordinates <span class="file">algebra.lua</span></h2>
+
+<p>
+  Barycentric coordinates are the language of triangle interpolation.
+  Given triangle vertices <strong>A</strong>, <strong>B</strong>, <strong>C</strong>,
+  any point <strong>P</strong> inside the triangle can be written as:
+</p>
+
+<div class="formula">
+  <span class="label">barycentric decomposition</span>
+  P = rA · A  +  rB · B  +  rC · C<br>
+  rA + rB + rC = 1,   each weight in [0, 1]
+</div>
+
+<p>
+  Geometrically, rA is the <em>fraction of the triangle's area</em> in the
+  sub-triangle formed by P, B, C (opposite to A), and similarly for rB, rC.
+  When P is at vertex A: rA=1, rB=rC=0.
+</p>
+
+<h3>Formula used in this renderer</h3>
+
+<div class="formula">
+  <span class="label">pre-computed per polygon (barycentric_coords_precalculated_for_polygon)</span>
+  common = (B.y−C.y)·(A.x−C.x) + (C.x−B.x)·(A.y−C.y)   <span style="color:var(--muted)">← signed area × 2</span><br><br>
+  ax = B.y−C.y,  ay = C.x−B.x<br>
+  bx = C.y−A.y,  by = A.x−C.x<br>
+  cx = C.x,  cy = C.y<br><br>
+  <span class="label">per pixel</span>
+  rA_num = ax·(px−cx) + ay·(py−cy)<br>
+  rB_num = bx·(px−cx) + by·(py−cy)<br>
+  rC_num = common − rA_num − rB_num<br><br>
+  rA = rA_num / common,   rB = rB_num / common,   rC = rC_num / common
+</div>
+
+<p>
+  Any per-vertex value V (depth z, RGB color, UV texture coordinates)
+  is then interpolated across the face:
+</p>
+<div class="formula">
+  <span class="label">attribute interpolation</span>
+  V(P) = rA · V<sub>A</sub>  +  rB · V<sub>B</sub>  +  rC · V<sub>C</sub>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2>8 · Incremental (Scanline) Rasterisation <span class="file">common.lua · draw()</span></h2>
+
+<p>
+  Naively evaluating the barycentric formula costs 4 multiplications + 4 additions per pixel.
+  The incremental trick cuts this to <strong>3 additions</strong>.
+</p>
+
+<h3>Why it works</h3>
+<p>
+  Along a scanline (fixed <em>py</em>, increasing <em>px</em>), barycentric numerators
+  are <em>linear</em> functions of px.  When px increases by 1:
+</p>
+
+<div class="formula">
+  <span class="label">scanline deltas</span>
+  rA_num  →  rA_num + ax        <span style="color:var(--muted)">← Δ per pixel = ax (constant!)</span><br>
+  rB_num  →  rB_num + bx        <span style="color:var(--muted)">← Δ per pixel = bx</span><br>
+  rC_num  →  rC_num + drc       <span style="color:var(--muted)">← drc = −(ax + bx), pre-computed</span>
+</div>
+
+<h3>Implementation</h3>
+<pre><code><span class="cm">-- Seed at the left edge of each scanline:</span>
+<span class="kw">local</span> ra_num = ax*(x_min - pre.cx) + pre.ay*(py - pre.cy)
+<span class="kw">local</span> rb_num = bx*(x_min - pre.cx) + pre.by*(py - pre.cy)
+<span class="kw">local</span> rc_num = pre.common - ra_num - rb_num
+
+<span class="kw">for</span> px = x_min, x_max <span class="kw">do</span>
+  <span class="cm">-- Inside test: all numerators ≥ 0 (assuming common > 0 from CCW winding)</span>
+  <span class="kw">if</span> ra_num >= <span class="nu">0</span> <span class="kw">and</span> rb_num >= <span class="nu">0</span> <span class="kw">and</span> rc_num >= <span class="nu">0</span> <span class="kw">then</span>
+    <span class="cm">-- Divide ONLY for inside pixels (the minority):</span>
+    <span class="kw">local</span> ra = ra_num * inv_common
+    <span class="kw">local</span> rb = rb_num * inv_common
+    <span class="kw">local</span> rc = rc_num * inv_common   <span class="cm">-- == 1 - ra - rb</span>
+    <span class="cm">-- ... depth, color, UV interpolation using ra/rb/rc ...</span>
+  <span class="kw">end</span>
+
+  <span class="cm">-- Step: 3 additions, no multiplications:</span>
+  ra_num = ra_num + ax
+  rb_num = rb_num + bx
+  rc_num = rc_num + drc
+<span class="kw">end</span></code></pre>
+
+<div class="info">
+  <strong>Deferred division:</strong> for most pixels in the bounding box the point is
+  <em>outside</em> the triangle. The division by <code>common</code> (expensive) is skipped
+  for those — only the sign of the numerators matters for the inside test.
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2>9 · Perspective-Correct UV Mapping <span class="file">common.lua · draw() · uv_interpolate_precalc()</span></h2>
+
+<p>
+  Texture coordinates (UV) cannot be linearly interpolated in screen space.
+  Because perspective projection compresses distant parts of a surface, naive
+  linear UV interpolation "swims" as the mesh rotates — a classic artefact.
+</p>
+
+<h3>The fix: interpolate U/Z and 1/Z, then divide</h3>
+<p>
+  Quantities that <em>are</em> linear in screen space are <code>u/z</code>,
+  <code>v/z</code>, and <code>1/z</code> (recall <code>inv_z = 1/(−z)</code>
+  is stored per vertex by <code>perspective()</code>).
+  Interpolate those with barycentric weights, then divide:
+</p>
+
+<div class="formula">
+  <span class="label">perspective-correct UV interpolation</span>
+  inv_z(P) = rA · inv_z<sub>A</sub>  +  rB · inv_z<sub>B</sub>  +  rC · inv_z<sub>C</sub><br><br>
+  u(P) = ( rA·u<sub>A</sub>·inv_z<sub>A</sub>  +  rB·u<sub>B</sub>·inv_z<sub>B</sub>  +  rC·u<sub>C</sub>·inv_z<sub>C</sub> )  /  inv_z(P)<br>
+  v(P) = ( rA·v<sub>A</sub>·inv_z<sub>A</sub>  +  rB·v<sub>B</sub>·inv_z<sub>B</sub>  +  rC·v<sub>C</sub>·inv_z<sub>C</sub> )  /  inv_z(P)
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2>10 · Pixel Buffer &amp; Backends <span class="file">main.lua · app.lua</span></h2>
+
+<p>
+  Writing one pixel at a time through a graphics API (one <code>SDL_FillRect</code>
+  or <code>love.graphics.rectangle</code> per pixel) incurs enormous per-call overhead.
+  Both backends instead accumulate all pixels into memory and flush once:
+</p>
+
+<table>
+  <tr><th>Backend</th><th>Write per pixel</th><th>Flush once per frame</th></tr>
+  <tr>
+    <td><strong>SDL2 / LuaJIT</strong></td>
+    <td><code>uint8_t*</code> pointer write via FFI</td>
+    <td><code>SDL_UpdateWindowSurface()</code></td>
+  </tr>
+  <tr>
+    <td><strong>Love2D</strong></td>
+    <td><code>ImageData:setPixel()</code></td>
+    <td><code>Image:replacePixels()</code> + <code>love.graphics.draw()</code></td>
+  </tr>
+</table>
+
+<p>
+  The SDL2 path uses the same <code>ffi.cast("uint8_t*", surface.pixels)</code> pattern
+  as texture sampling and writes the packed pixel directly — either as a 32-bit word
+  (4-byte surfaces) or three sequential bytes (24-bit surfaces).
+</p>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2>11 · Performance Summary</h2>
+
+<table>
+  <tr><th>Optimisation</th><th>Technique</th><th>Gain</th></tr>
+  <tr>
+    <td>Pixel buffer</td>
+    <td>Write to memory, flush once per frame</td>
+    <td class="good">Eliminates ~90k API calls/frame</td>
+  </tr>
+  <tr>
+    <td>Depth buffer reuse</td>
+    <td>Allocate once, reset with fill loop</td>
+    <td class="good">Eliminates ~90k table allocs/frame</td>
+  </tr>
+  <tr>
+    <td>Hoist closures</td>
+    <td><code>halfplane</code>, <code>inside_polygon</code> → module-level locals</td>
+    <td class="good">Enables JIT compilation of inner loop</td>
+  </tr>
+  <tr>
+    <td>Backface culling</td>
+    <td>nz ≥ 0 test before shading/perspective</td>
+    <td class="good">~50% fewer triangles processed</td>
+  </tr>
+  <tr>
+    <td>Incremental barycentric</td>
+    <td>Seed + add per scanline step</td>
+    <td class="good">4 mul+add → 3 add per pixel</td>
+  </tr>
+  <tr>
+    <td>Unified interpolation</td>
+    <td>One barycentric pass for inside+z+color+UV</td>
+    <td class="good">Eliminates 2–3× redundant barycentric + table allocs</td>
+  </tr>
+  <tr>
+    <td>Reuse pixel tables</td>
+    <td><code>pixel_rgb</code>, <code>pixel_xy</code>, <code>pixel_point</code> at module scope</td>
+    <td class="good">Zero per-pixel allocations in hot path</td>
+  </tr>
+</table>
+
+<table style="margin-top:1.2rem">
+  <tr><th>Mesh</th><th>Triangles</th><th>FPS (SDL2 / LuaJIT)</th></tr>
+  <tr><td>cube.obj</td><td>12</td><td class="good">~18</td></tr>
+  <tr><td>teapot.obj</td><td>992</td><td class="good">~52</td></tr>
+  <tr><td>head.obj</td><td>7 586</td><td class="good">~9–12</td></tr>
+</table>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2>12 · File Map</h2>
+
+<table>
+  <tr><th>File</th><th>Role</th></tr>
+  <tr><td><code>common.lua</code></td><td>Scene setup, transform, shading, perspective, backface cull, rasteriser</td></tr>
+  <tr><td><code>algebra.lua</code></td><td>Vectors, cross/dot product, normals, barycentric coordinates</td></tr>
+  <tr><td><code>loader.lua</code></td><td>OBJ and STL mesh file parser</td></tr>
+  <tr><td><code>main.lua</code></td><td>Love2D backend: window, ImageData pixel buffer, event loop</td></tr>
+  <tr><td><code>app.lua</code></td><td>LuaJIT + SDL2 backend: FFI, window surface, event loop</td></tr>
+  <tr><td><code>assets/</code></td><td>OBJ meshes, BMP textures</td></tr>
+</table>
+
+<footer style="margin-top:3rem; padding-top:1rem; border-top:1px solid var(--border); color:var(--muted); font-size:0.85rem">
+  Generated from source — <a href="https://github.com/Arkenidar/graphic">github.com/Arkenidar/graphic</a>
+</footer>
+
+</div>
+</body>
+</html>
