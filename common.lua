@@ -220,7 +220,7 @@ function update(dt)
   ---polygons_transformed = triangles_original
 
   polygons_transformed = polygons_transform(obj_cube, (degrees + 180) % 360)
-  ---polygons_transformed = polygons_transform(obj_floor, 0)
+  polygons_transformed = polygons_transform(obj_floor, 0)
   ---polygons_transformed = polygons_transform(obj_uv_plane, 0)
 
   local s = 50

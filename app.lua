@@ -24,12 +24,6 @@ https://gist.github.com/creationix/1213280/a97d7051decb2f1d3e8844186bbff49b64427
 --]]
 ffi.cdef(io.open("ffi_defs.h", "r"):read("*a"))
 
--- SDL_image declarations not included in ffi_defs.h
-ffi.cdef [[
-  SDL_Surface* IMG_Load(const char *file);
-  void IMG_Quit(void);
-]]
-
 --- local SDL = ffi.load("SDL2")
 --- local SDL_image = ffi.load("SDL2_image")
 
@@ -47,7 +41,6 @@ local function ffi_load_any(...)
 end
 
 local SDL = ffi_load_any("SDL2", "libSDL2-2.0.so.0", "libSDL2.so")
-local SDL_image = ffi_load_any("SDL2_image", "libSDL2_image-2.0.so.0", "libSDL2_image.so")
 
 _G =
     setmetatable(
@@ -56,9 +49,6 @@ _G =
         __index = function(self, index) -- index function CASE
             if "SDL" == string.sub(index, 1, 3) then
                 return SDL[index]
-            end
-            if "IMG" == string.sub(index, 1, 3) then
-                return SDL_image[index]
             end
         end
     }
@@ -161,7 +151,7 @@ end
 
 create_checker_bmp("assets/checker.bmp", 128, 8)
 
-local tex_surface = IMG_Load("assets/checker.bmp")
+local tex_surface = SDL_LoadBMP_RW(SDL_RWFromFile("assets/checker.bmp", "rb"), 1)
 assert(tex_surface ~= nil, "Failed to load assets/checker.bmp")
 
 function sample_texture(u, v)
