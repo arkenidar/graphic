@@ -11,6 +11,9 @@
         "file": "app.lua"
       },
       "cwd": "${workspaceFolder}",
+      "env": {
+        "PATH": "luajit;${env:PATH}"
+      },
       "stopOnEntry": false
     },
     {
